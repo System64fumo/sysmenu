@@ -6,7 +6,7 @@ Default view
 ![mini](https://github.com/AmirDahan/sysmenu/blob/main/screenshots/mini.jpg "Default view")
 
 Fullscreen view
-![full](https://github.com/AmirDahan/sysmenu/blob/main/screenshots/mini.jpg "Fullscreen view")
+![full](https://github.com/AmirDahan/sysmenu/blob/main/screenshots/full.jpg "Fullscreen view")
 
 # Why does this exist?
 Mainly because i got bored lol.<br>
@@ -23,5 +23,5 @@ sysmenu uses your gtk4 theme by default, However it can be also load custom css,
 Just copy the included menu.css file to ~/.config/sys64/menu.css<br>
 
 # Inspiration
-wofi [wofi](https://hg.sr.ht/~scoopta/wofi)<br>
-nwg-drawer [nwg](https://github.com/nwg-piotr/nwg-drawer)<br>
+[wofi](https://hg.sr.ht/~scoopta/wofi)<br>
+[nwg-drawer](https://github.com/nwg-piotr/nwg-drawer)<br>
