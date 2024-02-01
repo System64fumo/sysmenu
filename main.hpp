@@ -2,8 +2,10 @@
 #include <giomm/desktopappinfo.h>
 
 using AppInfo = Glib::RefPtr<Gio::AppInfo>;
+Glib::RefPtr<Gtk::Application> app;
+void handle_signal(int);
 
-class launcher : public Gtk::Box {
+class launcher : public Gtk::Button {
 	public:
 		launcher(AppInfo app);
 		AppInfo app_info;
@@ -12,7 +14,6 @@ class launcher : public Gtk::Box {
 		bool operator < (const launcher& other);
 
 	private:
-		Gtk::Button button_launcher;
 		Gtk::Box box_launcher;
 		Gtk::Image image_program;
 		Gtk::Label label_program;
@@ -21,8 +22,8 @@ class launcher : public Gtk::Box {
 
 class sysmenu : public Gtk::Window {
 
-	int32_t count_matches = 0;
-	Glib::ustring first_match = "";
+	int matches = 0;
+	Glib::ustring match = "";
 
 	public:
 		Gtk::Entry entry_search;

@@ -17,6 +17,21 @@ So instead of fixing them i created my own!<br>
 sysmenu can be configured in 2 ways<br>
 1: By changing config.h and recompiling (Suckless style)<br>
 2: Using launch arguments<br>
+```
+arguments:
+  -S	Hide the program on launch
+  -s	Hide the search bar
+  -i	Set launcher icon size
+  -m	Set launcher margins
+  -u	Show name under icon
+  -n	Max name length
+  -p	Items per row
+  -W	Set window width
+  -H	Set window Height
+  -l	Disable use of layer shell
+  -f	Fullscreen
+  -h	Show this help message
+```
 
 # Theming
 sysmenu uses your gtk4 theme by default, However it can be also load custom css,<br>
