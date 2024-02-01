@@ -1,21 +1,15 @@
-#include "main.h"
-#include "config.h"
+#include "main.hpp"
+#include "config.hpp"
 #include <gtkmm.h>
 #include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
 #include <gtkmm/cssprovider.h>
-#include <gdk/gdkkeysyms.h>
 #include <filesystem>
-#include <unistd.h>
 #include <getopt.h>
-#include <cassert>
 
-bool active = !starthidden;
-auto app = Gtk::Application::create("funky.sys64.sysmenu");
 std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
 std::vector<std::unique_ptr<launcher>> items;
-std::set<std::pair<std::string, std::string>> loaded_apps;
-sysmenu* win = nullptr;
+sysmenu* win;
 
 sysmenu::sysmenu() {
 	if (layer_shell) {
@@ -23,7 +17,6 @@ sysmenu::sysmenu() {
 		gtk_layer_set_keyboard_mode(gobj(), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
 		gtk_layer_set_namespace(gobj(), "sysmenu");
 		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
-
 
 		if (fill_screen) {
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_LEFT, true);
@@ -33,20 +26,19 @@ sysmenu::sysmenu() {
 		}
 	}
 
-	/* Initialize */
+	// Initialize
 	set_default_size(width, height);
+	set_hide_on_close(true);
 	if (!starthidden)
 		show();
+	box_layout.property_orientation().set_value(Gtk::Orientation::VERTICAL);
+	set_child(box_layout);
 
-	// Events.
+	// Events 
 	auto controller = Gtk::EventControllerKey::create();
 	controller->signal_key_pressed().connect(
 	sigc::mem_fun(*this, &sysmenu::on_escape_key_press), true);
 	add_controller(controller);
-
-	/* Layout */
-	box_layout.property_orientation().set_value(Gtk::Orientation::VERTICAL);
-	set_child(box_layout);
 
 	if (searchbar) {
 		entry_search.get_style_context()->add_class("searchbar");
@@ -61,6 +53,7 @@ sysmenu::sysmenu() {
 		entry_search.signal_activate().connect(sigc::mem_fun(*this, &sysmenu::on_search_done));
 		flowbox_itembox.set_sort_func(sigc::mem_fun(*this, &sysmenu::on_sort));
 		flowbox_itembox.set_filter_func(sigc::mem_fun(*this, &sysmenu::on_filter));
+		entry_search.grab_focus();
 	}
 
 	box_layout.get_style_context()->add_class("layoutbox");
@@ -78,15 +71,14 @@ sysmenu::sysmenu() {
 	flowbox_itembox.set_max_children_per_line(items_per_row);
 	flowbox_itembox.set_vexpand(true);
 
-	/* Load apps */
-	// TODO: Make this async
+	// Load applications
 	for (auto app : app_list)
 		load_menu_item(app);
 
-	/* Load css */
+	// Load custom css
 	std::string home_dir = getenv("HOME");
 	std::string css_path = home_dir + "/.config/sys64/menu.css";
-	
+
 	if (!std::filesystem::exists(css_path)) return;
 
     auto css = Gtk::CssProvider::create();
@@ -95,47 +87,21 @@ sysmenu::sysmenu() {
     style_context->add_provider_for_display(property_display(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
 }
 
-/* Handle showing or hiding the window */
-void handle_signal(int signum) {
-	switch (signum) {
-		case 10: // Showing window
-			if (!win->is_visible())
-				win->show();
-			
-			win->entry_search.grab_focus();
-			active = true;
-			break;
-		case 12: // Hiding window
-			if (win->is_visible())
-				win->hide();
-
-			win->entry_search.set_text("");
-			active = false;
-			break;
-		case 34: // Toggling window
-			if (active)
-				handle_signal(12);
-			else
-				handle_signal(10);
-			break;
-	}
-}
-
 bool sysmenu::on_escape_key_press(guint keyval, guint, Gdk::ModifierType state) {
 	if (keyval == 65307) // Escape key
 		handle_signal(12);
 	return true;
 }
 
-/* Item loading */
-launcher::launcher(AppInfo app) : Gtk::Box(), app_info(app) {
+/* Launchers */
+launcher::launcher(AppInfo app) : Gtk::Button(), app_info(app) {
 	Glib::ustring name = app->get_display_name();
 	Glib::ustring description = app->get_description();
 
 	if (items_per_row == 1)
-		box_launcher.set_margin_top(app_margin);
+		set_margin_top(app_margin);
 	else
-		box_launcher.set_margin(app_margin);
+		set_margin(app_margin);
 
 	image_program.set(app->get_icon());
 	image_program.set_pixel_size(icon_size);
@@ -146,30 +112,27 @@ launcher::launcher(AppInfo app) : Gtk::Box(), app_info(app) {
 		name = name.substr(0, max_name_length - 2) + "..";
 
 	label_program.set_text(name);
-	label_program.property_margin_start().set_value(5);
 
-	int hr = -1;
-	int wr = -1;
+	int size_request = -1;
 	if (name_under_icon) {
 		box_launcher.set_orientation(Gtk::Orientation::VERTICAL);
 		box_launcher.set_valign(Gtk::Align::CENTER);
-		button_launcher.set_valign(Gtk::Align::START);
-		hr = max_name_length * 10;
-		wr = max_name_length * 10;
+		set_valign(Gtk::Align::START);
+		size_request = max_name_length * 10;
 	}
+	else
+		label_program.property_margin_start().set_value(10);
 
 	box_launcher.append(image_program);
 	box_launcher.append(label_program);
 
-	button_launcher.set_child(box_launcher);
+	set_child(box_launcher);
 
-	append(button_launcher);
+	set_hexpand(true);
+	set_size_request(size_request, size_request);
 
-	button_launcher.set_hexpand(true);
-	button_launcher.set_size_request(wr, hr);
-
-	button_launcher.get_style_context()->add_class("flat");
-	button_launcher.signal_clicked().connect(sigc::mem_fun(*this, &launcher::on_click));
+	get_style_context()->add_class("flat");
+	signal_clicked().connect(sigc::mem_fun(*this, &launcher::on_click));
 }
 
 void launcher::on_click() {
@@ -179,29 +142,26 @@ void launcher::on_click() {
 
 /* Search */
 void sysmenu::on_search_changed() {
-	count_matches = 0;
-	first_match = "";
+	matches = 0;
+	match = "";
 	flowbox_itembox.invalidate_filter();
 }
 
 void sysmenu::on_search_done() {
 	// Launch the most relevant program on Enter key press.
 	// TODO: Add the ability to use arrow keys to select different search results
-	g_spawn_command_line_async(std::string(first_match).c_str(), NULL);
+	g_spawn_command_line_async(std::string(match).c_str(), NULL);
 	handle_signal(12);
 }
 
 bool sysmenu::on_filter(Gtk::FlowBoxChild *child) {
 	auto button = dynamic_cast<launcher*> (child->get_child());
-	assert(button);
-
 	auto text = entry_search.get_text();
 
 	if (button->matches(text)) {
-		this->count_matches++;
-		if (count_matches == 1) {
-			first_match = button->app_info->get_executable();
-		}
+		this->matches++;
+		if (matches == 1)
+			match = button->app_info->get_executable();
 		return true;
 	}
 
@@ -211,8 +171,6 @@ bool sysmenu::on_filter(Gtk::FlowBoxChild *child) {
 bool sysmenu::on_sort(Gtk::FlowBoxChild* a, Gtk::FlowBoxChild* b) {
 	auto b1 = dynamic_cast<launcher*> (a->get_child());
 	auto b2 = dynamic_cast<launcher*> (b->get_child());
-	assert(b1 && b2);
-
 	return *b2 < *b1;
 }
 
@@ -220,11 +178,11 @@ bool launcher::matches(Glib::ustring pattern) {
 	Glib::ustring name = app_info->get_name();
 	Glib::ustring long_name = app_info->get_display_name();
 	Glib::ustring progr = app_info->get_executable();
-	Glib::ustring descr = app_info->get_description();
 
-	Glib::ustring text = name.lowercase() + "$"
-		+ long_name.lowercase() + "$" + progr.lowercase() + "$"
-		+ descr.lowercase();
+	Glib::ustring text =
+		name.lowercase() + "$" +
+		long_name.lowercase() + "$" +
+		progr.lowercase();
 
 	return text.find(pattern.lowercase()) != text.npos;
 }
@@ -235,23 +193,38 @@ bool launcher::operator < (const launcher& other) {
 }
 
 void sysmenu::load_menu_item(AppInfo app_info) {
-	if (!app_info || !app_info->should_show())
+	if (!app_info || !app_info->should_show() || !app_info->get_icon())
 		return;
 
 	auto name = app_info->get_name();
 	auto exec = app_info->get_executable();
-	/* If we don't have the following, then the entry won't be useful anyway,
-	 * so we should skip it */
-	if (name.empty() || !app_info->get_icon() || exec.empty())
-		return;
 
-	/* Already created such a launcher, skip */
-	if (loaded_apps.count({name, exec}))
+	// Skip loading empty entries
+	if (name.empty() || exec.empty())
 		return;
-	loaded_apps.insert({name, exec});
 
 	items.push_back(std::unique_ptr<launcher>(new launcher(app_info)));
 	flowbox_itembox.append(*items.back());
+}
+
+/* Handle showing or hiding the window */
+void handle_signal(int signum) {
+	switch (signum) {
+		case 10: // Showing window
+			win->show();
+			win->entry_search.grab_focus();
+			break;
+		case 12: // Hiding window
+			win->hide();
+			win->entry_search.set_text("");
+			break;
+		case 34: // Toggling window
+			if (win->is_visible())
+				handle_signal(12);
+			else
+				handle_signal(10);
+			break;
+	}
 }
 
 int main(int argc, char* argv[]) {
@@ -261,7 +234,6 @@ int main(int argc, char* argv[]) {
 		switch(getopt(argc, argv, "Ssi:dm:dun:dp:dW:dH:dlfh")) {
 			case 'S':
 				starthidden=true;
-				active=false;
 				continue;
 
 			case 's':
@@ -330,18 +302,15 @@ int main(int argc, char* argv[]) {
 			break;
 	}
 
-	// Handle signals
+	// Catch signals
 	signal(SIGUSR1, handle_signal);
 	signal(SIGUSR2, handle_signal);
 	signal(SIGRTMIN, handle_signal);
 
+	app = Gtk::Application::create("funky.sys64.sysmenu");
 	app_list = Gio::AppInfo::get_all();
-
-	win = new sysmenu();
-	win->entry_search.grab_focus();
-	
-	win->set_hide_on_close(true);
 	app->hold();
-	
+	win = new sysmenu();
+
 	return app->run();
 }
