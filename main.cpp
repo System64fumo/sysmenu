@@ -1,6 +1,5 @@
 #include "main.hpp"
 #include "config.hpp"
-#include <gtkmm.h>
 #include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
 #include <gtkmm/cssprovider.h>
@@ -178,11 +177,13 @@ bool launcher::matches(Glib::ustring pattern) {
 	Glib::ustring name = app_info->get_name();
 	Glib::ustring long_name = app_info->get_display_name();
 	Glib::ustring progr = app_info->get_executable();
+	Glib::ustring descr = app_info->get_description();
 
 	Glib::ustring text =
 		name.lowercase() + "$" +
 		long_name.lowercase() + "$" +
-		progr.lowercase();
+		progr.lowercase() + "$" +
+		descr.lowercase();
 
 	return text.find(pattern.lowercase()) != text.npos;
 }

@@ -30,7 +30,6 @@ arguments:
   -H	Set window Height
   -l	Disable use of layer shell
   -f	Fullscreen
-  -h	Show this help message
 ```
 
 # Theming
