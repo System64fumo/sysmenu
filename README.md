@@ -8,6 +8,14 @@ Default view
 Fullscreen view
 ![full](https://github.com/AmirDahan/sysmenu/blob/main/screenshots/full.jpg "Fullscreen view")
 
+# Install
+You need the following dependencies:
+* gtkmm-4.0
+* gtk4-layer-shell
+
+Customize ``config.hpp`` if you wish to do so. <br>
+Then to build all you need to do is run ``make``
+
 # Why does this exist?
 Mainly because i got bored lol.<br>
 But also because i disliked how the current programs i used behaved.<br>
