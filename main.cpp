@@ -70,10 +70,6 @@ sysmenu::sysmenu() {
 	flowbox_itembox.set_max_children_per_line(items_per_row);
 	flowbox_itembox.set_vexpand(true);
 
-	// Load applications
-	for (auto app : app_list)
-		load_menu_item(app);
-
 	// Load custom css
 	std::string home_dir = getenv("HOME");
 	std::string css_path = home_dir + "/.config/sys64/menu.css";
@@ -193,6 +189,15 @@ bool launcher::operator < (const launcher& other) {
 		< Glib::ustring(other.app_info->get_name()).lowercase();
 }
 
+static void app_info_changed(GAppInfoMonitor* gappinfomonitor, gpointer user_data) {
+	app_list = Gio::AppInfo::get_all();
+	win->flowbox_itembox.remove_all();
+
+	// Load applications
+	for (auto app : app_list)
+		win->load_menu_item(app);
+}
+
 void sysmenu::load_menu_item(AppInfo app_info) {
 	if (!app_info || !app_info->should_show() || !app_info->get_icon())
 		return;
@@ -309,9 +314,12 @@ int main(int argc, char* argv[]) {
 	signal(SIGRTMIN, handle_signal);
 
 	app = Gtk::Application::create("funky.sys64.sysmenu");
-	app_list = Gio::AppInfo::get_all();
 	app->hold();
 	win = new sysmenu();
+
+	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
+    g_signal_connect(app_info_monitor, "changed", G_CALLBACK(app_info_changed), nullptr);
+	app_info_changed(nullptr, nullptr);
 
 	return app->run();
 }
