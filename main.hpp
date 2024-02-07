@@ -27,17 +27,18 @@ class sysmenu : public Gtk::Window {
 
 	public:
 		Gtk::Entry entry_search;
+		Gtk::FlowBox flowbox_itembox;
+
 		sysmenu();
+		void load_menu_item(AppInfo app_info);
 
 	private:
 		Gtk::Box box_layout;
 		Gtk::CenterBox centerbox_top;
 		Gtk::ScrolledWindow scrolled_window;
-		Gtk::FlowBox flowbox_itembox;
 
 		void InitLayout();
 		bool on_escape_key_press(guint keyval, guint keycode, Gdk::ModifierType state);
-		void load_menu_item(AppInfo app_info);
 
 		bool on_sort(Gtk::FlowBoxChild*, Gtk::FlowBoxChild*);
 		bool on_filter(Gtk::FlowBoxChild* child);
