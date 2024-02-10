@@ -40,6 +40,12 @@ arguments:
   -f	Fullscreen
 ```
 
+# Signals
+You can send signals to show/hide the window.<br>
+``pkill -10 sysmenu`` to show.<br>
+``pkill -12 sysmenu`` to hide.<br>
+``pkill -34 sysmenu`` to toggle.<br>
+
 # Theming
 sysmenu uses your gtk4 theme by default, However it can be also load custom css,<br>
 Just copy the included menu.css file to ~/.config/sys64/menu.css<br>
