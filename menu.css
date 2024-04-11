@@ -8,5 +8,16 @@ window {
 .layoutbox {
 }
 
-.innerbox {
+.innerbox.visible {
+	animation: slidein 0.5s ease-out;
+}
+
+@keyframes slidein {
+  from {
+    margin: 100px 0px -100px 0px;
+  }
+
+  to {
+    margin: 0px;
+  }
 }
