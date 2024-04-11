@@ -28,6 +28,7 @@ class sysmenu : public Gtk::Window {
 	public:
 		Gtk::Entry entry_search;
 		Gtk::FlowBox flowbox_itembox;
+		Gtk::ScrolledWindow scrolled_window;
 
 		sysmenu();
 		void load_menu_item(AppInfo app_info);
@@ -35,7 +36,6 @@ class sysmenu : public Gtk::Window {
 	private:
 		Gtk::Box box_layout;
 		Gtk::CenterBox centerbox_top;
-		Gtk::ScrolledWindow scrolled_window;
 
 		void InitLayout();
 		bool on_escape_key_press(guint keyval, guint keycode, Gdk::ModifierType state);

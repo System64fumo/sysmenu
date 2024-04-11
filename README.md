@@ -32,6 +32,7 @@ arguments:
   -i	Set launcher icon size
   -m	Set launcher margins
   -u	Show name under icon
+  -b	Show scroll bars
   -n	Max name length
   -p	Items per row
   -W	Set window width
@@ -45,6 +46,9 @@ You can send signals to show/hide the window.<br>
 ``pkill -10 sysmenu`` to show.<br>
 ``pkill -12 sysmenu`` to hide.<br>
 ``pkill -34 sysmenu`` to toggle.<br>
+
+Warning: There is currently an issue where if you toggle visibility too quickly,<br>
+The program will crash with: ``Error 71  (Protocol error) dispatching to Wayland display.``<br>
 
 # Theming
 sysmenu uses your gtk4 theme by default, However it can be also load custom css,<br>

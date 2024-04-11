@@ -58,10 +58,11 @@ sysmenu::sysmenu() {
 	box_layout.get_style_context()->add_class("layoutbox");
 	box_layout.append(scrolled_window);
 	scrolled_window.get_style_context()->add_class("innerbox");
+	scrolled_window.get_style_context()->add_class("visible");
 	scrolled_window.set_child(flowbox_itembox);
 
-	// TODO: Consider adding scrollbar controls
-	//scrolled_window.set_policy(Gtk::PolicyType::NEVER, Gtk::PolicyType::NEVER);
+	if (!scroll_bars)
+		scrolled_window.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
 
 	if (items_per_row != 1)
 		flowbox_itembox.set_halign(Gtk::Align::CENTER);
@@ -217,12 +218,18 @@ void sysmenu::load_menu_item(AppInfo app_info) {
 void handle_signal(int signum) {
 	switch (signum) {
 		case 10: // Showing window
+			win->scrolled_window.get_style_context()->add_class("visible");
 			win->show();
-			win->entry_search.grab_focus();
+
+			if (searchbar)
+				win->entry_search.grab_focus();
 			break;
 		case 12: // Hiding window
+			win->scrolled_window.get_style_context()->remove_class("visible");
 			win->hide();
-			win->entry_search.set_text("");
+
+			if (searchbar)
+				win->entry_search.set_text("");
 			break;
 		case 34: // Toggling window
 			if (win->is_visible())
@@ -237,7 +244,7 @@ int main(int argc, char* argv[]) {
 
 	// Read launch arguments
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:dm:dun:dp:dW:dH:dlfh")) {
+		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dlfh")) {
 			case 'S':
 				starthidden=true;
 				continue;
@@ -256,6 +263,10 @@ int main(int argc, char* argv[]) {
 
 			case 'u':
 				name_under_icon=true;
+				continue;
+
+			case 'b':
+				scroll_bars=true;
 				continue;
 
 			case 'n':
@@ -292,6 +303,7 @@ int main(int argc, char* argv[]) {
 				printf("  -i	Set launcher icon size\n");
 				printf("  -m	Set launcher margins\n");
 				printf("  -u	Show name under icon\n");
+				printf("  -b	Show scroll bars\n");
 				printf("  -n	Max name length\n");
 				printf("  -p	Items per row\n");
 				printf("  -W	Set window width\n");
