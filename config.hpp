@@ -15,4 +15,5 @@ int items_per_row = 1;			// 1
 int width = 400;				// 400
 int height = 600;				// 600
 bool layer_shell = true;		// true
+bool gestures = false;			// false
 bool fill_screen = false;		// false

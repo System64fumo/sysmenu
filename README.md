@@ -38,6 +38,7 @@ arguments:
   -W	Set window width
   -H	Set window Height
   -l	Disable use of layer shell
+  -g	Enable touchscreen swipe gesture (Experimental)
   -f	Fullscreen
 ```
 
