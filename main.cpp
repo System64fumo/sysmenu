@@ -5,10 +5,22 @@
 #include <gtkmm/cssprovider.h>
 #include <filesystem>
 #include <getopt.h>
+#include <thread>
 
 std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
 std::vector<std::unique_ptr<launcher>> items;
 sysmenu* win;
+
+std::thread thread_height;
+int starting_height = 0;
+int max_height = 100; // TODO: Assume initial max size of the window (Use screen height)
+
+void get_window_height() {
+	// This is required because otherwise we get the current
+	// height of the window rather than getting the max size of it.
+	g_usleep(100000);
+	max_height = win->get_height();
+}
 
 sysmenu::sysmenu() {
 	if (layer_shell) {
@@ -20,9 +32,43 @@ sysmenu::sysmenu() {
 		if (fill_screen) {
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_LEFT, true);
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_RIGHT, true);
-			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
+			if (!gestures)
+				gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_BOTTOM, true);
 		}
+	}
+
+	// Experimental if you couldn't guess by the many TODOs (I am lazy)
+	if (gestures) {
+		// TODO: Gestures currently have issues on non touchscreen inputs,
+		// Ideally this should be fixed..
+		// Buuuuuuut the better solution is to just disable non touchscreen input
+		// events from interacting with the drag gesture if possible.
+
+		// TODO: Dragging causes the inner scrollbox to resize, This is bad as
+		// it uses a lot of cpu power trying to resize things.
+
+		// TODO: Add a proper separator and option to not make the bar span the
+		// bottom edge of the screen.
+
+		// TODO: Swipe gestures don't work? maybe add those one day?
+		// like.. swiping from the screen edge does not trigger the gesture.
+
+		// Set up gestures
+		gesture_drag = Gtk::GestureDrag::create();
+		gesture_drag->signal_drag_begin().connect(sigc::mem_fun(*this, &sysmenu::on_drag_start));
+		gesture_drag->signal_drag_update().connect(sigc::mem_fun(*this, &sysmenu::on_drag_update));
+		gesture_drag->signal_drag_end().connect(sigc::mem_fun(*this, &sysmenu::on_drag_stop));
+
+		box_layout.append(box_grabber);
+		box_grabber.get_style_context()->add_class("grabber");
+		box_grabber.add_controller(gesture_drag);
+		box_grabber.set_size_request(-1, 30);
+
+		// Set window height to the grabber's height
+		height = box_grabber.property_height_request().get_value();
+		box_layout.set_valign(Gtk::Align::END);
+		centerbox_top.set_visible(false);
 	}
 
 	// Initialize
@@ -77,10 +123,10 @@ sysmenu::sysmenu() {
 
 	if (!std::filesystem::exists(css_path)) return;
 
-    auto css = Gtk::CssProvider::create();
-    css->load_from_path(css_path);
-    auto style_context = get_style_context();
-    style_context->add_provider_for_display(property_display(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
+	auto css = Gtk::CssProvider::create();
+	css->load_from_path(css_path);
+	auto style_context = get_style_context();
+	style_context->add_provider_for_display(property_display(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
 }
 
 bool sysmenu::on_escape_key_press(guint keyval, guint, Gdk::ModifierType state) {
@@ -214,28 +260,86 @@ void sysmenu::load_menu_item(AppInfo app_info) {
 	flowbox_itembox.append(*items.back());
 }
 
+void sysmenu::on_drag_start(int x, int y) {
+	centerbox_top.set_visible(false);
+	starting_height = box_layout.get_height();
+	gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
+	gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
+	box_layout.set_valign(Gtk::Align::END);
+}
+
+void sysmenu::on_drag_update(int x, int y) {
+	int height = box_layout.get_height();
+
+	// TODO: There's probably a better way of doing this.
+	if (starting_height > (max_height / 2))
+		height = starting_height - y;
+	else
+		height = height + (-y + box_grabber.property_height_request().get_value()) - win->get_height();
+
+	box_layout.set_size_request(-1, height);
+}
+
+void sysmenu::on_drag_stop(int x, int y) {
+	// Top position
+	if (box_layout.get_height() > max_height / 2)
+		handle_signal(10);
+	// Bottom Position
+	else
+		handle_signal(12);
+}
+
 /* Handle showing or hiding the window */
 void handle_signal(int signum) {
 	switch (signum) {
 		case 10: // Showing window
-			win->scrolled_window.get_style_context()->add_class("visible");
-			win->show();
+			win->box_layout.get_style_context()->add_class("visible");
+			if (gestures) {
+				win->centerbox_top.set_visible(true);
+				win->box_layout.set_valign(Gtk::Align::FILL);
+				win->box_layout.set_size_request(-1, max_height);
+				gtk_layer_set_anchor(win->gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
+
+				// I am sure there's a better way of doing this,
+				// But whare are you gonna do? Make a commit?
+				if (thread_height.joinable())
+					thread_height.join();
+				thread_height = std::thread(get_window_height);
+			}
+			else
+				win->show();
 
 			if (searchbar)
 				win->entry_search.grab_focus();
 			break;
 		case 12: // Hiding window
-			win->scrolled_window.get_style_context()->remove_class("visible");
-			win->hide();
+			win->box_layout.get_style_context()->remove_class("visible");
+			if (gestures) {
+				win->centerbox_top.set_visible(false);
+				win->box_layout.set_valign(Gtk::Align::END);
+				win->box_layout.set_size_request(-1, -1);
+				gtk_layer_set_anchor(win->gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
+			}
+			else
+				win->hide();
 
 			if (searchbar)
 				win->entry_search.set_text("");
 			break;
 		case 34: // Toggling window
-			if (win->is_visible())
-				handle_signal(12);
-			else
-				handle_signal(10);
+			if (gestures) {
+				starting_height = win->box_layout.get_height();
+				if (win->box_layout.get_height() < max_height / 2)
+					handle_signal(10);
+				else
+					handle_signal(12);
+			}
+			else {
+				if (win->is_visible())
+					handle_signal(12);
+				else
+					handle_signal(10);
+			}
 			break;
 	}
 }
@@ -244,7 +348,7 @@ int main(int argc, char* argv[]) {
 
 	// Read launch arguments
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dlfh")) {
+		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dlgfh")) {
 			case 'S':
 				starthidden=true;
 				continue;
@@ -289,6 +393,14 @@ int main(int argc, char* argv[]) {
 				layer_shell=false;
 				continue;
 
+			case 'g':
+				gestures=true;
+
+				// Set these because we need them
+				layer_shell=true;
+				fill_screen=true;
+				continue;
+
 			case 'f':
 				fill_screen=true;
 				continue;
@@ -309,6 +421,7 @@ int main(int argc, char* argv[]) {
 				printf("  -W	Set window width\n");
 				printf("  -H	Set window Height\n");
 				printf("  -l	Disable use of layer shell\n");
+				printf("  -g	Enable touchscreen swipe gesture (Experimental)\n");
 				printf("  -f	Fullscreen\n");
 				printf("  -h	Show this help message\n");
 				return 0;
@@ -329,8 +442,10 @@ int main(int argc, char* argv[]) {
 	app->hold();
 	win = new sysmenu();
 
+	// TODO: Set max_height from the display's resolution as a fallback
+
 	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
-    g_signal_connect(app_info_monitor, "changed", G_CALLBACK(app_info_changed), nullptr);
+	g_signal_connect(app_info_monitor, "changed", G_CALLBACK(app_info_changed), nullptr);
 	app_info_changed(nullptr, nullptr);
 
 	return app->run();
