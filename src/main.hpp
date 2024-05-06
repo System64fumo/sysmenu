@@ -2,23 +2,8 @@
 #include <giomm/desktopappinfo.h>
 
 using AppInfo = Glib::RefPtr<Gio::AppInfo>;
-Glib::RefPtr<Gtk::Application> app;
+inline Glib::RefPtr<Gtk::Application> app;
 void handle_signal(int);
-
-class launcher : public Gtk::Button {
-	public:
-		launcher(AppInfo app);
-		AppInfo app_info;
-
-		bool matches(Glib::ustring text);
-		bool operator < (const launcher& other);
-
-	private:
-		Gtk::Box box_launcher;
-		Gtk::Image image_program;
-		Gtk::Label label_program;
-		void on_click();
-};
 
 class sysmenu : public Gtk::Window {
 
