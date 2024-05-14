@@ -1,4 +1,5 @@
 CXXFLAGS=-march=native -mtune=native -Os -s -Wall
+DESTDIR=$(HOME)/.local
 
 all: sysmenu
 
@@ -28,3 +29,6 @@ sysmenu: main.o window.o launcher.o
 	$$(pkg-config gtk4-layer-shell-0 --cflags --libs) \
 	$(CXXFLAGS)
 
+install: sysmenu
+	mkdir -p $(DESTDIR)/bin
+	install ./sysmenu $(DESTDIR)/bin/sysmenu
