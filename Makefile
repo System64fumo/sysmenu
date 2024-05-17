@@ -1,34 +1,25 @@
-CXXFLAGS=-march=native -mtune=native -Os -s -Wall
-DESTDIR=$(HOME)/.local
+EXEC = sysmenu
+PKGS = gtkmm-4.0 gtk4-layer-shell-0
+SRCS +=	$(wildcard src/*.cpp)
+OBJS = $(SRCS:.cpp=.o)
+DESTDIR = $(HOME)/.local
 
-all: sysmenu
+CXXFLAGS = -march=native -mtune=native -Os -s -Wall
+CXXFLAGS += $(shell pkg-config --cflags $(PKGS))
+LDFLAGS += $(shell pkg-config --libs $(PKGS))
+
+$(EXEC): $(OBJS)
+	$(CXX) -o $(EXEC) $(OBJS) \
+	$(LDFLAGS) \
+	$(CXXFLAGS)
+
+%.o: %.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@ \
+	$(CXXFLAGS)
+
+install: $(EXEC)
+	mkdir -p $(DESTDIR)/bin
+	install $(EXEC) $(DESTDIR)/bin/$(EXEC)
 
 clean:
-	rm sysmenu *.o
-
-window.o: src/window.cpp
-	g++ -c src/window.cpp -o window.o \
-	$$(pkg-config gtkmm-4.0 --cflags --libs) \
-	$$(pkg-config gtk4-layer-shell-0 --cflags --libs) \
-	$(CXXFLAGS)
-
-launcher.o: src/launcher.cpp
-	g++ -c src/launcher.cpp -o launcher.o \
-	$$(pkg-config gtkmm-4.0 --cflags --libs) \
-	$(CXXFLAGS)
-
-main.o: src/main.cpp
-	g++ -c src/main.cpp -o main.o \
-	$$(pkg-config gtkmm-4.0 --cflags --libs) \
-	$$(pkg-config gtk4-layer-shell-0 --cflags --libs) \
-	$(CXXFLAGS)
-
-sysmenu: main.o window.o launcher.o
-	g++ main.o window.o launcher.o -o sysmenu \
-	$$(pkg-config gtkmm-4.0 --cflags --libs) \
-	$$(pkg-config gtk4-layer-shell-0 --cflags --libs) \
-	$(CXXFLAGS)
-
-install: sysmenu
-	mkdir -p $(DESTDIR)/bin
-	install ./sysmenu $(DESTDIR)/bin/sysmenu
+	rm $(EXEC) $(SRCS:.cpp=.o)
