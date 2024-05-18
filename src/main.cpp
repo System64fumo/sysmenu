@@ -4,6 +4,7 @@
 #include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
 #include <getopt.h>
+#include <iostream>
 #include <thread>
 
 std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
@@ -192,23 +193,23 @@ int main(int argc, char* argv[]) {
 
 			case 'h':
 			default :
-				printf("usage:\n");
-				printf("  sysmenu [argument...]:\n\n");
-				printf("arguments:\n");
-				printf("  -S	Hide the program on launch\n");
-				printf("  -s	Hide the search bar\n");
-				printf("  -i	Set launcher icon size\n");
-				printf("  -m	Set launcher margins\n");
-				printf("  -u	Show name under icon\n");
-				printf("  -b	Show scroll bars\n");
-				printf("  -n	Max name length\n");
-				printf("  -p	Items per row\n");
-				printf("  -W	Set window width\n");
-				printf("  -H	Set window Height\n");
-				printf("  -l	Disable use of layer shell\n");
-				printf("  -g	Enable touchscreen swipe gesture (Experimental)\n");
-				printf("  -f	Fullscreen\n");
-				printf("  -h	Show this help message\n");
+				std::cout << "usage:" << std::endl;
+				std::cout << "  sysmenu [argument...]:\n" << std::endl;
+				std::cout << "arguments:" << std::endl;
+				std::cout << "  -S	Hide the program on launch" << std::endl;
+				std::cout << "  -s	Hide the search bar" << std::endl;
+				std::cout << "  -i	Set launcher icon size" << std::endl;
+				std::cout << "  -m	Set launcher margins" << std::endl;
+				std::cout << "  -u	Show name under icon" << std::endl;
+				std::cout << "  -b	Show scroll bars" << std::endl;
+				std::cout << "  -n	Max name length" << std::endl;
+				std::cout << "  -p	Items per row" << std::endl;
+				std::cout << "  -W	Set window width" << std::endl;
+				std::cout << "  -H	Set window Height" << std::endl;
+				std::cout << "  -l	Disable use of layer shell" << std::endl;
+				std::cout << "  -g	Enable touchscreen swipe gesture (Experimental)" << std::endl;
+				std::cout << "  -f	Fullscreen" << std::endl;
+				std::cout << "  -h	Show this help message" << std::endl;
 				return 0;
 
 			case -1:
