@@ -9,8 +9,6 @@
 #include <iostream>
 #include <thread>
 
-//std::thread thread_height;
-
 /* Handle showing or hiding the window */
 void handle_signal(int signum) {
 	switch (signum) {
@@ -21,12 +19,6 @@ void handle_signal(int signum) {
 				win->box_layout.set_valign(Gtk::Align::FILL);
 				win->box_layout.set_size_request(-1, win->max_height);
 				gtk_layer_set_anchor(win->gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
-
-				// I am sure there's a better way of doing this,
-				// But whare are you gonna do? Make a commit?
-				/*if (thread_height.joinable())
-					thread_height.join();
-				thread_height = std::thread(win->get_window_height);*/
 			}
 			else
 				win->show();
@@ -163,8 +155,6 @@ int main(int argc, char* argv[]) {
 	app = Gtk::Application::create("funky.sys64.sysmenu");
 	app->hold();
 	win = new sysmenu();
-
-	// TODO: Set max_height from the display's resolution as a fallback
 
 	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
 	g_signal_connect(app_info_monitor, "changed", G_CALLBACK(win->app_info_changed), nullptr);
