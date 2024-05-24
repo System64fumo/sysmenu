@@ -1,9 +1,25 @@
 #include "main.hpp"
+#include "window.hpp"
 #include "config.hpp"
 #include "launcher.hpp"
+
+#include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
 #include <gtkmm/cssprovider.h>
 #include <filesystem>
+
+using AppInfo = Glib::RefPtr<Gio::AppInfo>;
+std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
+std::vector<std::unique_ptr<launcher>> items;
+
+void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor, gpointer user_data) {
+	app_list = Gio::AppInfo::get_all();
+	win->flowbox_itembox.remove_all();
+
+	// Load applications
+	for (auto app : app_list)
+		win->load_menu_item(app);
+}
 
 sysmenu::sysmenu() {
 	if (layer_shell) {
@@ -87,7 +103,6 @@ sysmenu::sysmenu() {
 	box_layout.get_style_context()->add_class("layoutbox");
 	box_layout.append(scrolled_window);
 	scrolled_window.get_style_context()->add_class("innerbox");
-	scrolled_window.get_style_context()->add_class("visible");
 	scrolled_window.set_child(flowbox_itembox);
 
 	if (!scroll_bars)
@@ -118,7 +133,6 @@ bool sysmenu::on_escape_key_press(guint keyval, guint, Gdk::ModifierType state) 
 	return true;
 }
 
-/* Search */
 void sysmenu::on_search_changed() {
 	matches = 0;
 	match = "";
@@ -150,4 +164,48 @@ bool sysmenu::on_sort(Gtk::FlowBoxChild* a, Gtk::FlowBoxChild* b) {
 	auto b1 = dynamic_cast<launcher*> (a->get_child());
 	auto b2 = dynamic_cast<launcher*> (b->get_child());
 	return *b2 < *b1;
+}
+
+void sysmenu::load_menu_item(AppInfo app_info) {
+	if (!app_info || !app_info->should_show() || !app_info->get_icon())
+		return;
+
+	auto name = app_info->get_name();
+	auto exec = app_info->get_executable();
+
+	// Skip loading empty entries
+	if (name.empty() || exec.empty())
+		return;
+
+	items.push_back(std::unique_ptr<launcher>(new launcher(app_info)));
+	flowbox_itembox.append(*items.back());
+}
+
+void sysmenu::on_drag_start(int x, int y) {
+	centerbox_top.set_visible(false);
+	starting_height = box_layout.get_height();
+	gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
+	gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
+	box_layout.set_valign(Gtk::Align::END);
+}
+
+void sysmenu::on_drag_update(int x, int y) {
+	int height = box_layout.get_height();
+
+	// TODO: There's probably a better way of doing this.
+	if (starting_height > (max_height / 2))
+		height = starting_height - y;
+	else
+		height = height + (-y + box_grabber.property_height_request().get_value()) - win->get_height();
+
+	box_layout.set_size_request(-1, height);
+}
+
+void sysmenu::on_drag_stop(int x, int y) {
+	// Top position
+	if (box_layout.get_height() > max_height / 2)
+		handle_signal(10);
+	// Bottom Position
+	else
+		handle_signal(12);
 }
