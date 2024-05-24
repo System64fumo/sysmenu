@@ -78,6 +78,15 @@ sysmenu::sysmenu() {
 	box_layout.property_orientation().set_value(Gtk::Orientation::VERTICAL);
 	set_child(box_layout);
 
+	// Max screen height
+	// TODO: Don't assume the main display is display 0
+	GdkDisplay *display = gdk_display_get_default();
+	GListModel *monitors = gdk_display_get_monitors(display);
+	GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_item(monitors, 0));
+	GdkRectangle geometry;
+	gdk_monitor_get_geometry(monitor, &geometry);
+	max_height = geometry.height;
+
 	// Events 
 	auto controller = Gtk::EventControllerKey::create();
 	controller->signal_key_pressed().connect(
