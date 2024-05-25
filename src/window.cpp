@@ -60,6 +60,7 @@ sysmenu::sysmenu() {
 		gesture_drag->signal_drag_end().connect(sigc::mem_fun(*this, &sysmenu::on_drag_stop));
 
 		box_layout.append(box_grabber);
+		box_grabber.property_orientation().set_value(Gtk::Orientation::VERTICAL);
 		box_grabber.get_style_context()->add_class("grabber");
 		box_grabber.add_controller(gesture_drag);
 		box_grabber.set_size_request(-1, 30);
@@ -95,7 +96,10 @@ sysmenu::sysmenu() {
 
 	if (searchbar) {
 		entry_search.get_style_context()->add_class("searchbar");
-		box_layout.append(centerbox_top);
+		if (gestures)
+			box_grabber.append(centerbox_top);
+		else
+			box_layout.append(centerbox_top);
 		centerbox_top.set_center_widget(entry_search);
 		entry_search.set_icon_from_icon_name("search", Gtk::Entry::IconPosition::PRIMARY);
 		entry_search.set_placeholder_text("Search");
