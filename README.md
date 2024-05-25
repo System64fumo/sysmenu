@@ -1,12 +1,7 @@
 # Sysmenu
 Sysmenu is a simple and efficient application launcher written in gtkmm4<br>
-
-# Screenshots
-Default view
-![mini](https://github.com/System64fumo/sysmenu/blob/main/screenshots/mini.jpg "Default view")
-
-Fullscreen view
-![full](https://github.com/System64fumo/sysmenu/blob/main/screenshots/full.jpg "Fullscreen view")
+![default](https://github.com/System64fumo/sysmenu/blob/main/preview_default.gif "default")
+![fullscreen](https://github.com/System64fumo/sysmenu/blob/main/preview_fullscreen.gif "fullscreen")
 
 # Install
 You need the following dependencies:
