@@ -80,10 +80,12 @@ sysmenu::sysmenu() {
 	set_child(box_layout);
 
 	// Max screen height
-	// TODO: Don't assume the main display is display 0
+	// TODO: Make this code better
+	// Sadly there does not seem to be a way to detect what the default monitor is
+	// Gotta assume or ask the user for their monitor of choice
 	GdkDisplay *display = gdk_display_get_default();
 	GListModel *monitors = gdk_display_get_monitors(display);
-	GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_item(monitors, 0));
+	GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_item(monitors, main_monitor));
 	GdkRectangle geometry;
 	gdk_monitor_get_geometry(monitor, &geometry);
 	max_height = geometry.height;

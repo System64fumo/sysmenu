@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
 
 	// Read launch arguments
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dlgfh")) {
+		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dM:dlgfh")) {
 			case 'S':
 				starthidden=true;
 				continue;
@@ -103,6 +103,10 @@ int main(int argc, char* argv[]) {
 				height=std::stoi(optarg);;
 				continue;
 
+			case 'M':
+				main_monitor=std::stoi(optarg);
+				continue;
+
 			case 'l':
 				layer_shell=false;
 				continue;
@@ -134,6 +138,7 @@ int main(int argc, char* argv[]) {
 				std::cout << "  -p	Items per row" << std::endl;
 				std::cout << "  -W	Set window width" << std::endl;
 				std::cout << "  -H	Set window Height" << std::endl;
+				std::cout << "  -M	Set primary monitor" << std::endl;
 				std::cout << "  -l	Disable use of layer shell" << std::endl;
 				std::cout << "  -g	Enable touchscreen swipe gesture (Experimental)" << std::endl;
 				std::cout << "  -f	Fullscreen" << std::endl;
