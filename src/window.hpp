@@ -19,7 +19,7 @@ class sysmenu : public Gtk::Window {
 		Gtk::CenterBox centerbox_top;
 
 		int starting_height = 0;
-		int max_height = 100; // TODO: Assume initial max size of the window (Use screen height)
+		int max_height;
 
 		static void app_info_changed(GAppInfoMonitor* gappinfomonitor, gpointer user_data);
 		void load_menu_item(AppInfo app_info);

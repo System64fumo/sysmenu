@@ -207,11 +207,7 @@ void sysmenu::on_drag_start(int x, int y) {
 void sysmenu::on_drag_update(int x, int y) {
 	int height = box_layout.get_height();
 
-	// TODO: There's probably a better way of doing this.
-	if (starting_height > (max_height / 2))
-		height = starting_height - y;
-	else
-		height = height + (-y + box_grabber.property_height_request().get_value()) - win->get_height();
+	height = starting_height - y;
 
 	box_layout.set_size_request(-1, height);
 }

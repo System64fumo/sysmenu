@@ -96,11 +96,11 @@ int main(int argc, char* argv[]) {
 				continue;
 
 			case 'W':
-				width=std::stoi(optarg);;
+				width=std::stoi(optarg);
 				continue;
 
 			case 'H':
-				height=std::stoi(optarg);;
+				height=std::stoi(optarg);
 				continue;
 
 			case 'M':
