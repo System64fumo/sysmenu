@@ -38,6 +38,7 @@ launcher::launcher(AppInfo app) : Gtk::Button(), app_info(app) {
 
 	set_child(box_launcher);
 
+	set_can_focus(false);
 	set_hexpand(true);
 	set_size_request(size_request, size_request);
 

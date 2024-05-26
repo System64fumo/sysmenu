@@ -29,6 +29,7 @@ class sysmenu : public Gtk::Window {
 		Glib::RefPtr<Gtk::GestureDrag> gesture_drag;
 
 		void InitLayout();
+		void on_child_activated(Gtk::FlowBoxChild* child);
 		bool on_escape_key_press(guint keyval, guint keycode, Gdk::ModifierType state);
 
 		bool on_sort(Gtk::FlowBoxChild*, Gtk::FlowBoxChild*);
