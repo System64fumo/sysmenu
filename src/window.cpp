@@ -102,9 +102,10 @@ sysmenu::sysmenu() {
 	auto controller = Gtk::EventControllerKey::create();
 	controller->signal_key_pressed().connect(
 	sigc::mem_fun(*this, &sysmenu::on_escape_key_press), true);
-	add_controller(controller);
+	
 
 	if (searchbar) {
+		entry_search.add_controller(controller);
 		entry_search.get_style_context()->add_class("searchbar");
 		if (gestures)
 			box_grabber.append(centerbox_top);
@@ -122,6 +123,8 @@ sysmenu::sysmenu() {
 		flowbox_itembox.set_filter_func(sigc::mem_fun(*this, &sysmenu::on_filter));
 		entry_search.grab_focus();
 	}
+	else
+		add_controller(controller);
 
 	box_layout.get_style_context()->add_class("layoutbox");
 	box_layout.append(scrolled_window);
@@ -137,6 +140,7 @@ sysmenu::sysmenu() {
 	flowbox_itembox.set_min_children_per_line(items_per_row);
 	flowbox_itembox.set_max_children_per_line(items_per_row);
 	flowbox_itembox.set_vexpand(true);
+	flowbox_itembox.signal_child_activated().connect(sigc::mem_fun(*this, &sysmenu::on_child_activated));
 
 	// Load custom css
 	std::string home_dir = getenv("HOME");
@@ -153,6 +157,13 @@ sysmenu::sysmenu() {
 bool sysmenu::on_escape_key_press(guint keyval, guint, Gdk::ModifierType state) {
 	if (keyval == 65307) // Escape key
 		handle_signal(12);
+	else if (keyval == 65289) { // Tab
+			// TODO: Don't assume child 0 is the first child
+			auto children = flowbox_itembox.get_children();
+			auto widget = children[0];
+			widget->grab_focus();
+	}
+
 	return true;
 }
 
@@ -162,9 +173,13 @@ void sysmenu::on_search_changed() {
 	flowbox_itembox.invalidate_filter();
 }
 
+// Launch the selected program
+void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
+	launcher *button = dynamic_cast<launcher*>(child->get_child());
+	button->on_click();
+}
+
 void sysmenu::on_search_done() {
-	// Launch the most relevant program on Enter key press.
-	// TODO: Add the ability to use arrow keys to select different search results
 	g_spawn_command_line_async(std::string(match).c_str(), NULL);
 	handle_signal(12);
 }
