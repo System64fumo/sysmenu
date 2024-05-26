@@ -85,6 +85,14 @@ sysmenu::sysmenu() {
 	// Gotta assume or ask the user for their monitor of choice
 	GdkDisplay *display = gdk_display_get_default();
 	GListModel *monitors = gdk_display_get_monitors(display);
+	int monitorCount = g_list_model_get_n_items(monitors);
+
+	// Keep the values in check
+	if (main_monitor <= -1)
+		main_monitor = 0;
+	else if (main_monitor >= monitorCount)
+		main_monitor = monitorCount - 1;
+
 	GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_item(monitors, main_monitor));
 	GdkRectangle geometry;
 	gdk_monitor_get_geometry(monitor, &geometry);
