@@ -50,9 +50,6 @@ sysmenu::sysmenu() {
 		// TODO: Add a proper separator and option to not make the bar span the
 		// bottom edge of the screen.
 
-		// TODO: Swipe gestures don't work? maybe add those one day?
-		// like.. swiping from the screen edge does not trigger the gesture.
-
 		// Set up gestures
 		gesture_drag = Gtk::GestureDrag::create();
 		gesture_drag->signal_drag_begin().connect(sigc::mem_fun(*this, &sysmenu::on_drag_start));
