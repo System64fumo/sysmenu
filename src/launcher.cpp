@@ -5,8 +5,11 @@
 
 /* Launchers */
 launcher::launcher(AppInfo app) : Gtk::Button(), app_info(app) {
-	Glib::ustring name = app->get_display_name();
-	Glib::ustring description = app->get_description();
+
+	name = app_info->get_name();
+	long_name = app_info->get_display_name();
+	progr = app_info->get_executable();
+	descr = app_info->get_description();
 
 	if (items_per_row == 1)
 		set_margin_top(app_margin);
@@ -16,12 +19,12 @@ launcher::launcher(AppInfo app) : Gtk::Button(), app_info(app) {
 	image_program.set(app->get_icon());
 	image_program.set_pixel_size(icon_size);
 
-	set_tooltip_text(description);
+	set_tooltip_text(descr);
 
-	if (name.length() > max_name_length)
-		name = name.substr(0, max_name_length - 2) + "..";
-
-	label_program.set_text(name);
+	if (long_name.length() > max_name_length)
+		label_program.set_text(long_name.substr(0, max_name_length - 2) + "..");
+	else
+		label_program.set_text(long_name);
 
 	int size_request = -1;
 	if (name_under_icon) {
@@ -52,11 +55,6 @@ void launcher::on_click() {
 }
 
 bool launcher::matches(Glib::ustring pattern) {
-	Glib::ustring name = app_info->get_name();
-	Glib::ustring long_name = app_info->get_display_name();
-	Glib::ustring progr = app_info->get_executable();
-	Glib::ustring descr = app_info->get_description();
-
 	Glib::ustring text =
 		name.lowercase() + "$" +
 		long_name.lowercase() + "$" +

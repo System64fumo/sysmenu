@@ -14,4 +14,9 @@ class launcher : public Gtk::Button {
 		Gtk::Box box_launcher;
 		Gtk::Image image_program;
 		Gtk::Label label_program;
+
+		Glib::ustring name;
+		Glib::ustring long_name;
+		Glib::ustring progr;
+		Glib::ustring descr;
 };
