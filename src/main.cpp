@@ -2,6 +2,7 @@
 #include "window.hpp"
 #include "config.hpp"
 #include "launcher.hpp"
+#include "git_info.hpp"
 
 #include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]) {
 
 	// Read launch arguments
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dM:dlgfh")) {
+		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dM:dlgfvh")) {
 			case 'S':
 				starthidden=true;
 				continue;
@@ -123,6 +124,11 @@ int main(int argc, char* argv[]) {
 				fill_screen=true;
 				continue;
 
+			case 'v':
+				std::cout << "Commit: " << GIT_COMMIT_MESSAGE << std::endl;
+				std::cout << "Date: " << GIT_COMMIT_DATE << std::endl;
+				return 0;
+
 			case 'h':
 			default :
 				std::cout << "usage:" << std::endl;
@@ -142,6 +148,7 @@ int main(int argc, char* argv[]) {
 				std::cout << "  -l	Disable use of layer shell" << std::endl;
 				std::cout << "  -g	Enable touchscreen swipe gesture (Experimental)" << std::endl;
 				std::cout << "  -f	Fullscreen" << std::endl;
+				std::cout << "  -v	Prints version info" << std::endl;
 				std::cout << "  -h	Show this help message" << std::endl;
 				return 0;
 
