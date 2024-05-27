@@ -1,12 +1,11 @@
 #include "main.hpp"
 #include "window.hpp"
+#include "css.hpp"
 #include "config.hpp"
 #include "launcher.hpp"
 
 #include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
-#include <gtkmm/cssprovider.h>
-#include <filesystem>
 #include <thread>
 
 using AppInfo = Glib::RefPtr<Gio::AppInfo>;
@@ -143,13 +142,7 @@ sysmenu::sysmenu() {
 	// Load custom css
 	std::string home_dir = getenv("HOME");
 	std::string css_path = home_dir + "/.config/sys64/menu.css";
-
-	if (!std::filesystem::exists(css_path)) return;
-
-	auto css = Gtk::CssProvider::create();
-	css->load_from_path(css_path);
-	auto style_context = get_style_context();
-	style_context->add_provider_for_display(property_display(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
+	css_loader loader(css_path, this);
 
 	// Load applications
 	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
