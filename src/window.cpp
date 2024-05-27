@@ -7,6 +7,7 @@
 #include <gtk4-layer-shell.h>
 #include <gtkmm/cssprovider.h>
 #include <filesystem>
+#include <thread>
 
 using AppInfo = Glib::RefPtr<Gio::AppInfo>;
 std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
@@ -156,7 +157,8 @@ sysmenu::sysmenu() {
 		sysmenu* self = static_cast<sysmenu*>(user_data);
 		self->app_info_changed(monitor);
 		}), this);
-	app_info_changed(nullptr);
+	std::thread thread(&sysmenu::app_info_changed, this, nullptr);
+	thread.detach();
 }
 
 bool sysmenu::on_escape_key_press(guint keyval, guint, Gdk::ModifierType state) {
