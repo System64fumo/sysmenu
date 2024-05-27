@@ -54,6 +54,9 @@ You can send signals to show/hide the window.<br>
 sysmenu uses your gtk4 theme by default, However it can be also load custom css,<br>
 Just copy the included menu.css file to ~/.config/sys64/menu.css<br>
 
-# Inspiration
+# Credits
+[wf-shell](https://github.com/WayfireWM/wf-shell) for showing how to do launcher related stuff<br>
+
+# Also check out
 [wofi](https://hg.sr.ht/~scoopta/wofi)<br>
 [nwg-drawer](https://github.com/nwg-piotr/nwg-drawer)<br>
