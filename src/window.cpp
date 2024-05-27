@@ -12,13 +12,13 @@ using AppInfo = Glib::RefPtr<Gio::AppInfo>;
 std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
 std::vector<std::unique_ptr<launcher>> items;
 
-void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor, gpointer user_data) {
+void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 	app_list = Gio::AppInfo::get_all();
-	win->flowbox_itembox.remove_all();
+	flowbox_itembox.remove_all();
 
 	// Load applications
 	for (auto app : app_list)
-		win->load_menu_item(app);
+		load_menu_item(app);
 }
 
 sysmenu::sysmenu() {
@@ -149,6 +149,14 @@ sysmenu::sysmenu() {
 	css->load_from_path(css_path);
 	auto style_context = get_style_context();
 	style_context->add_provider_for_display(property_display(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+	// Load applications
+	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
+	g_signal_connect(app_info_monitor, "changed", G_CALLBACK(+[](GAppInfoMonitor* monitor, gpointer user_data) {
+		sysmenu* self = static_cast<sysmenu*>(user_data);
+		self->app_info_changed(monitor);
+		}), this);
+	app_info_changed(nullptr);
 }
 
 bool sysmenu::on_escape_key_press(guint keyval, guint, Gdk::ModifierType state) {

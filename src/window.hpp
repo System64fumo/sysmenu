@@ -21,7 +21,7 @@ class sysmenu : public Gtk::Window {
 		int starting_height = 0;
 		int max_height;
 
-		static void app_info_changed(GAppInfoMonitor* gappinfomonitor, gpointer user_data);
+		void app_info_changed(GAppInfoMonitor* gappinfomonitor);
 		void load_menu_item(AppInfo app_info);
 		sysmenu();
 
