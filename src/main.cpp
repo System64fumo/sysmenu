@@ -161,9 +161,5 @@ int main(int argc, char* argv[]) {
 	app->hold();
 	win = new sysmenu();
 
-	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
-	g_signal_connect(app_info_monitor, "changed", G_CALLBACK(win->app_info_changed), nullptr);
-	win->app_info_changed(nullptr, nullptr);
-
 	return app->run();
 }
