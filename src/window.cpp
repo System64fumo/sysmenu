@@ -85,10 +85,12 @@ sysmenu::sysmenu() {
 	int monitorCount = g_list_model_get_n_items(monitors);
 
 	// Keep the values in check
-	if (main_monitor <= -1)
-		main_monitor = 0;
+	if (main_monitor <= 0)
+		main_monitor = 1;
 	else if (main_monitor >= monitorCount)
 		main_monitor = monitorCount - 1;
+	else if (layer_shell)
+		gtk_layer_set_monitor (gobj(), GDK_MONITOR(g_list_model_get_item(monitors, main_monitor)));
 
 	GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_item(monitors, main_monitor));
 	GdkRectangle geometry;
