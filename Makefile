@@ -4,9 +4,9 @@ SRCS +=	$(wildcard src/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
 DESTDIR = $(HOME)/.local
 
-CXXFLAGS = -march=native -mtune=native -Os -s -Wall
+CXXFLAGS = -march=native -mtune=native -Os -s -Wall -flto=auto -fno-exceptions
 CXXFLAGS += $(shell pkg-config --cflags $(PKGS))
-LDFLAGS += $(shell pkg-config --libs $(PKGS))
+LDFLAGS += $(shell pkg-config --libs $(PKGS)) -Wl,--gc-sections
 
 $(EXEC): src/git_info.hpp $(OBJS)
 	$(CXX) -o $(EXEC) $(OBJS) \
