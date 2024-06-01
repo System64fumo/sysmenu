@@ -6,9 +6,12 @@
 
 #include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
-#include <getopt.h>
 #include <iostream>
 #include <thread>
+
+#ifdef RUNTIME_CONFIG
+#include <getopt.h>
+#endif
 
 /* Handle showing or hiding the window */
 void handle_signal(int signum) {
@@ -61,6 +64,7 @@ void handle_signal(int signum) {
 
 int main(int argc, char* argv[]) {
 
+	#ifdef RUNTIME_CONFIG
 	// Read launch arguments
 	while (true) {
 		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dM:dlgfvh")) {
@@ -158,6 +162,7 @@ int main(int argc, char* argv[]) {
 
 			break;
 	}
+	#endif
 
 	// Catch signals
 	signal(SIGUSR1, handle_signal);
