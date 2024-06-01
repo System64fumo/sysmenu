@@ -1,9 +1,12 @@
 /*
 	Default config.
 	Can be configured instead of using launch arguments.
+	Runtime configuration can be disabled by deleting #define RUNTIME_CONFIG
 */
 
-// Current						Default
+#define RUNTIME_CONFIG
+
+// Current								Default
 inline bool starthidden = false;		// false
 inline bool searchbar = true;			// true
 inline int icon_size = 32;				// 32
