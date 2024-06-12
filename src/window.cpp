@@ -4,6 +4,7 @@
 #include "config.hpp"
 #include "launcher.hpp"
 
+#include <gtkmm/eventcontrollerkey.h>
 #include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
 #include <thread>

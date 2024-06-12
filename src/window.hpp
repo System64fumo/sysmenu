@@ -1,6 +1,12 @@
 #pragma once
 
-#include <gtkmm.h>
+#include <gtkmm/window.h>
+#include <gtkmm/entry.h>
+#include <gtkmm/flowbox.h>
+#include <gtkmm/scrolledwindow.h>
+#include <gtkmm/box.h>
+#include <gtkmm/centerbox.h>
+#include <gtkmm/gesturedrag.h>
 #include <giomm/desktopappinfo.h>
 
 using AppInfo = Glib::RefPtr<Gio::AppInfo>;

@@ -4,7 +4,6 @@
 #include "launcher.hpp"
 #include "git_info.hpp"
 
-#include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
 #include <iostream>
 #include <thread>
