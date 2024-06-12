@@ -1,4 +1,7 @@
-#include <gtkmm.h>
+#include <gtkmm/button.h>
+#include <gtkmm/box.h>
+#include <gtkmm/image.h>
+#include <gtkmm/label.h>
 #include <giomm/desktopappinfo.h>
 
 class launcher : public Gtk::Button {

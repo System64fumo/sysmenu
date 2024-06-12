@@ -1,7 +1,6 @@
 #include "main.hpp"
 #include "config.hpp"
 #include "launcher.hpp"
-#include <giomm/desktopappinfo.h>
 
 /* Launchers */
 launcher::launcher(AppInfo app) : Gtk::Button(), app_info(app) {
