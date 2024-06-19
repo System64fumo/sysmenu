@@ -3,11 +3,13 @@
 #include "css.hpp"
 #include "config.hpp"
 #include "launcher.hpp"
+#include "dock.hpp"
 
 #include <gtkmm/eventcontrollerkey.h>
 #include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
 #include <thread>
+#include <iostream>
 
 using AppInfo = Glib::RefPtr<Gio::AppInfo>;
 std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
@@ -40,6 +42,7 @@ sysmenu::sysmenu() {
 
 	// Experimental if you couldn't guess by the many TODOs (I am lazy)
 	if (gestures) {
+		dock sysmenu_dock;
 		// TODO: Gestures currently have issues on non touchscreen inputs,
 		// Ideally this should be fixed..
 		// Buuuuuuut the better solution is to just disable non touchscreen input
@@ -57,16 +60,23 @@ sysmenu::sysmenu() {
 		gesture_drag->signal_drag_update().connect(sigc::mem_fun(*this, &sysmenu::on_drag_update));
 		gesture_drag->signal_drag_end().connect(sigc::mem_fun(*this, &sysmenu::on_drag_stop));
 
-		box_layout.append(box_grabber);
-		box_grabber.property_orientation().set_value(Gtk::Orientation::VERTICAL);
-		box_grabber.get_style_context()->add_class("grabber");
-		box_grabber.add_controller(gesture_drag);
-		box_grabber.set_size_request(-1, 30);
+		// Set up revealer
+		revealer_dock.set_child(sysmenu_dock);
+		revealer_dock.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
+		revealer_dock.set_transition_duration(1000);
+		revealer_dock.set_reveal_child(true);
+		revealer_search.set_reveal_child(false);
 
-		// Set window height to the grabber's height
-		height = box_grabber.property_height_request().get_value();
+		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
+		box_layout.append(box_top);
+		box_top.append(revealer_dock);
+		box_top.property_orientation().set_value(Gtk::Orientation::VERTICAL);
+		box_top.add_controller(gesture_drag);
+		//box_top.set_size_request(-1, 100);
+
+		// Set window height to the dock's height
+		height = 30;
 		box_layout.set_valign(Gtk::Align::END);
-		centerbox_top.set_visible(false);
 	}
 
 	// Initialize
@@ -107,10 +117,16 @@ sysmenu::sysmenu() {
 	if (searchbar) {
 		entry_search.add_controller(controller);
 		entry_search.get_style_context()->add_class("searchbar");
-		if (gestures)
-			box_grabber.append(centerbox_top);
-		else
+		if (gestures) {
+			box_top.append(revealer_search);
+			revealer_search.set_child(centerbox_top);
+			revealer_search.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
+			revealer_search.set_transition_duration(1000);
+			revealer_search.get_style_context()->add_class("revealer_search");
+		}
+		else {
 			box_layout.append(centerbox_top);
+		}
 		centerbox_top.set_center_widget(entry_search);
 		entry_search.set_icon_from_icon_name("search", Gtk::Entry::IconPosition::PRIMARY);
 		entry_search.set_placeholder_text("Search");
@@ -223,7 +239,6 @@ void sysmenu::load_menu_item(AppInfo app_info) {
 }
 
 void sysmenu::on_drag_start(int x, int y) {
-	centerbox_top.set_visible(false);
 	starting_height = box_layout.get_height();
 	gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 	gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
@@ -236,6 +251,9 @@ void sysmenu::on_drag_update(int x, int y) {
 	height = starting_height - y;
 
 	box_layout.set_size_request(-1, height);
+
+	revealer_dock.set_reveal_child((-y < 0));
+	revealer_search.set_reveal_child((-y > 0));
 }
 
 void sysmenu::on_drag_stop(int x, int y) {

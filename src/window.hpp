@@ -5,6 +5,7 @@
 #include <gtkmm/flowbox.h>
 #include <gtkmm/scrolledwindow.h>
 #include <gtkmm/box.h>
+#include <gtkmm/revealer.h>
 #include <gtkmm/centerbox.h>
 #include <gtkmm/gesturedrag.h>
 #include <giomm/desktopappinfo.h>
@@ -21,7 +22,9 @@ class sysmenu : public Gtk::Window {
 		Gtk::FlowBox flowbox_itembox;
 		Gtk::ScrolledWindow scrolled_window;
 		Gtk::Box box_layout;
-		Gtk::Box box_grabber;
+		Gtk::Box box_top;
+		Gtk::Revealer revealer_dock;
+		Gtk::Revealer revealer_search;
 		Gtk::CenterBox centerbox_top;
 
 		int starting_height = 0;
