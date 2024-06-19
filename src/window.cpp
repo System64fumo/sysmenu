@@ -2,7 +2,6 @@
 #include "window.hpp"
 #include "css.hpp"
 #include "config.hpp"
-#include "launcher.hpp"
 #include "dock.hpp"
 
 #include <gtkmm/eventcontrollerkey.h>
@@ -10,10 +9,6 @@
 #include <gtk4-layer-shell.h>
 #include <thread>
 #include <iostream>
-
-using AppInfo = Glib::RefPtr<Gio::AppInfo>;
-std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
-std::vector<std::unique_ptr<launcher>> items;
 
 void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 	app_list = Gio::AppInfo::get_all();
@@ -169,8 +164,9 @@ sysmenu::sysmenu() {
 		sysmenu* self = static_cast<sysmenu*>(user_data);
 		self->app_info_changed(monitor);
 		}), this);
-	std::thread thread(&sysmenu::app_info_changed, this, nullptr);
-	thread.detach();
+
+	std::thread thread_appinfo(&sysmenu::app_info_changed, this, nullptr);
+	thread_appinfo.detach();
 }
 
 bool sysmenu::on_escape_key_press(guint keyval, guint, Gdk::ModifierType state) {
@@ -223,7 +219,7 @@ bool sysmenu::on_sort(Gtk::FlowBoxChild* a, Gtk::FlowBoxChild* b) {
 	return *b2 < *b1;
 }
 
-void sysmenu::load_menu_item(AppInfo app_info) {
+void sysmenu::load_menu_item(Glib::RefPtr<Gio::AppInfo> app_info) {
 	if (!app_info || !app_info->should_show() || !app_info->get_icon())
 		return;
 

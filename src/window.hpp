@@ -1,4 +1,5 @@
 #pragma once
+#include "launcher.hpp"
 
 #include <gtkmm/window.h>
 #include <gtkmm/entry.h>
@@ -10,34 +11,33 @@
 #include <gtkmm/gesturedrag.h>
 #include <giomm/desktopappinfo.h>
 
-using AppInfo = Glib::RefPtr<Gio::AppInfo>;
-
 class sysmenu : public Gtk::Window {
-
-	int matches = 0;
-	Glib::ustring match = "";
-
 	public:
-		Gtk::Entry entry_search;
-		Gtk::FlowBox flowbox_itembox;
-		Gtk::ScrolledWindow scrolled_window;
-		Gtk::Box box_layout;
-		Gtk::Box box_top;
-		Gtk::Revealer revealer_dock;
-		Gtk::Revealer revealer_search;
-		Gtk::CenterBox centerbox_top;
+		sysmenu();
 
 		int starting_height = 0;
 		int max_height;
 
-		void app_info_changed(GAppInfoMonitor* gappinfomonitor);
-		void load_menu_item(AppInfo app_info);
-		sysmenu();
+		Gtk::Entry entry_search;
+		Gtk::Box box_layout;
+		Gtk::Revealer revealer_dock;
+		Gtk::Revealer revealer_search;
 
 	private:
+		int matches = 0;
+		Glib::ustring match = "";
+		std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
+		std::vector<std::unique_ptr<launcher>> items;
+
+		Gtk::FlowBox flowbox_itembox;
+		Gtk::ScrolledWindow scrolled_window;
+		Gtk::Box box_top;
+		Gtk::CenterBox centerbox_top;
 		Glib::RefPtr<Gtk::GestureDrag> gesture_drag;
 
-		void InitLayout();
+		void app_info_changed(GAppInfoMonitor* gappinfomonitor);
+		void load_menu_item(Glib::RefPtr<Gio::AppInfo> app_info);
+
 		void on_child_activated(Gtk::FlowBoxChild* child);
 		bool on_escape_key_press(guint keyval, guint keycode, Gdk::ModifierType state);
 
