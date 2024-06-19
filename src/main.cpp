@@ -18,7 +18,8 @@ void handle_signal(int signum) {
 		case 10: // Showing window
 			win->get_style_context()->add_class("visible");
 			if (gestures) {
-				win->centerbox_top.set_visible(true);
+				win->revealer_search.set_reveal_child(true);
+				win->revealer_dock.set_reveal_child(false);
 				win->box_layout.set_valign(Gtk::Align::FILL);
 				win->box_layout.set_size_request(-1, win->max_height);
 				gtk_layer_set_anchor(win->gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
@@ -32,7 +33,8 @@ void handle_signal(int signum) {
 		case 12: // Hiding window
 			win->get_style_context()->remove_class("visible");
 			if (gestures) {
-				win->centerbox_top.set_visible(false);
+				win->revealer_search.set_reveal_child(false);
+				win->revealer_dock.set_reveal_child(true);
 				win->box_layout.set_valign(Gtk::Align::END);
 				win->box_layout.set_size_request(-1, -1);
 				gtk_layer_set_anchor(win->gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
