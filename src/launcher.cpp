@@ -3,7 +3,7 @@
 #include "launcher.hpp"
 
 /* Launchers */
-launcher::launcher(AppInfo app) : Gtk::Button(), app_info(app) {
+launcher::launcher(Glib::RefPtr<Gio::AppInfo> app) : Gtk::Button(), app_info(app) {
 
 	name = app_info->get_name();
 	long_name = app_info->get_display_name();

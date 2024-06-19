@@ -1,3 +1,4 @@
+#pragma once
 #include <gtkmm/button.h>
 #include <gtkmm/box.h>
 #include <gtkmm/image.h>
@@ -6,8 +7,8 @@
 
 class launcher : public Gtk::Button {
 	public:
-		launcher(AppInfo app);
-		AppInfo app_info;
+		launcher(Glib::RefPtr<Gio::AppInfo> app);
+		Glib::RefPtr<Gio::AppInfo> app_info;
 
 		bool matches(Glib::ustring text);
 		bool operator < (const launcher& other);

@@ -1,10 +1,9 @@
+#pragma once
+
 /*
 	Default config.
 	Can be configured instead of using launch arguments.
-	Runtime configuration can be disabled by deleting #define RUNTIME_CONFIG
 */
-
-#define RUNTIME_CONFIG
 
 // Current								Default
 inline bool starthidden = false;		// false
@@ -21,3 +20,6 @@ inline int main_monitor = 0;			// 0
 inline bool layer_shell = true;			// true
 inline bool gestures = false;			// false
 inline bool fill_screen = false;		// false
+
+// Build time configuration				Description
+#define RUNTIME_CONFIG					// Allow the use of runtime arguments
