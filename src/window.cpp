@@ -2,7 +2,6 @@
 #include "window.hpp"
 #include "css.hpp"
 #include "config.hpp"
-#include "dock.hpp"
 
 #include <gtkmm/eventcontrollerkey.h>
 #include <giomm/desktopappinfo.h>
@@ -17,6 +16,9 @@ void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 	// Load applications
 	for (auto app : app_list)
 		load_menu_item(app);
+
+	// Load dock items
+	sysmenu_dock.load_items(app_list);
 }
 
 sysmenu::sysmenu() {
@@ -37,7 +39,6 @@ sysmenu::sysmenu() {
 
 	// Experimental if you couldn't guess by the many TODOs (I am lazy)
 	if (gestures) {
-		dock sysmenu_dock;
 		// TODO: Gestures currently have issues on non touchscreen inputs,
 		// Ideally this should be fixed..
 		// Buuuuuuut the better solution is to just disable non touchscreen input

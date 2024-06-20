@@ -1,5 +1,6 @@
 #pragma once
 #include "launcher.hpp"
+#include "dock.hpp"
 
 #include <gtkmm/window.h>
 #include <gtkmm/entry.h>
@@ -18,6 +19,7 @@ class sysmenu : public Gtk::Window {
 		int starting_height = 0;
 		int max_height;
 
+		dock sysmenu_dock;
 		Gtk::Entry entry_search;
 		Gtk::Box box_layout;
 		Gtk::Revealer revealer_dock;
