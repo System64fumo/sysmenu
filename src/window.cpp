@@ -26,7 +26,6 @@ sysmenu::sysmenu() {
 		gtk_layer_init_for_window(gobj());
 		gtk_layer_set_keyboard_mode(gobj(), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
 		gtk_layer_set_namespace(gobj(), "sysmenu");
-		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 
 		if (fill_screen) {
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_LEFT, true);
@@ -37,18 +36,16 @@ sysmenu::sysmenu() {
 		}
 	}
 
-	// Experimental if you couldn't guess by the many TODOs (I am lazy)
+	// Dock
 	if (dock_items != "") {
+		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 		// TODO: Gestures currently have issues on non touchscreen inputs,
 		// Ideally this should be fixed..
-		// Buuuuuuut the better solution is to just disable non touchscreen input
-		// events from interacting with the drag gesture if possible.
+		// However we don't live in an ideal world so tough luck!
 
 		// TODO: Dragging causes the inner scrollbox to resize, This is bad as
 		// it uses a lot of cpu power trying to resize things.
-
-		// TODO: Add a proper separator and option to not make the bar span the
-		// bottom edge of the screen.
+		// Is this even possible to fix?
 
 		// Set up gestures
 		gesture_drag = Gtk::GestureDrag::create();
@@ -74,6 +71,8 @@ sysmenu::sysmenu() {
 		height = 30;
 		box_layout.set_valign(Gtk::Align::END);
 	}
+	else
+		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 
 	// Initialize
 	set_default_size(width, height);
@@ -171,7 +170,7 @@ sysmenu::sysmenu() {
 	thread_appinfo.detach();
 }
 
-bool sysmenu::on_escape_key_press(guint keyval, guint, Gdk::ModifierType state) {
+bool sysmenu::on_escape_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
 	if (keyval == 65307) // Escape key
 		handle_signal(12);
 	else if (keyval == 65289) { // Tab
@@ -236,14 +235,14 @@ void sysmenu::load_menu_item(Glib::RefPtr<Gio::AppInfo> app_info) {
 	flowbox_itembox.append(*items.back());
 }
 
-void sysmenu::on_drag_start(int x, int y) {
+void sysmenu::on_drag_start(const double &x, const double &y) {
 	starting_height = box_layout.get_height();
 	gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 	gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
 	box_layout.set_valign(Gtk::Align::END);
 }
 
-void sysmenu::on_drag_update(int x, int y) {
+void sysmenu::on_drag_update(const double &x, const double &y) {
 	int height = box_layout.get_height();
 
 	height = starting_height - y;
@@ -254,7 +253,7 @@ void sysmenu::on_drag_update(int x, int y) {
 	revealer_search.set_reveal_child((-y > 1));
 }
 
-void sysmenu::on_drag_stop(int x, int y) {
+void sysmenu::on_drag_stop(const double &x, const double &y) {
 	// Top position
 	if (box_layout.get_height() > max_height / 2)
 		handle_signal(10);
