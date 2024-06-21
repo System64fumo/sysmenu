@@ -16,6 +16,7 @@
 void handle_signal(int signum) {
 	switch (signum) {
 		case 10: // Showing window
+			gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 			win->get_style_context()->add_class("visible");
 			if (dock_items != "") {
 				win->revealer_search.set_reveal_child(true);
@@ -31,6 +32,7 @@ void handle_signal(int signum) {
 				win->entry_search.grab_focus();
 			break;
 		case 12: // Hiding window
+			gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 			win->get_style_context()->remove_class("visible");
 			if (dock_items != "") {
 				win->revealer_search.set_reveal_child(false);
