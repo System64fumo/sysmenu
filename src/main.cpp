@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
 	#ifdef RUNTIME_CONFIG
 	// Read launch arguments
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dM:dlgfvh")) {
+		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dM:dlgD:Sfvh")) {
 			case 'S':
 				starthidden=true;
 				continue;
@@ -123,6 +123,10 @@ int main(int argc, char* argv[]) {
 				// Set these because we need them
 				layer_shell=true;
 				fill_screen=true;
+				continue;
+
+			case 'D':
+				dock_items=optarg;
 				continue;
 
 			case 'f':

@@ -20,6 +20,7 @@ inline int main_monitor = 0;			// 0
 inline bool layer_shell = true;			// true
 inline bool gestures = false;			// false
 inline bool fill_screen = false;		// false
+inline std::string dock_items = "";		// ""
 
 // Build time configuration				Description
 #define RUNTIME_CONFIG					// Allow the use of runtime arguments
