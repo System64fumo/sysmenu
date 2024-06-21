@@ -5,17 +5,27 @@
 
 dock::dock() {
 	get_style_context()->add_class("dock");
+	set_halign(Gtk::Align::CENTER);
 }
 
 void dock::load_items(std::vector<std::shared_ptr<Gio::AppInfo>> items) {
 	// TODO: Add check to not re add existing items
 	for (const auto& app_info : items) {
-		std::string name = app_info->get_display_name();
+		std::string name = app_info->get_name();
 		std::cout << name << std::endl; // For debug
-		if (dock_items.find(name) != std::string::npos) {
-			dock_item item(app_info);
-			append(item);
-		}
+
+		if (!app_info->should_show() || !app_info->get_icon())
+			continue;
+
+		if (dock_items.find(name) == std::string::npos)
+			continue;
+
+		if (dock_existing_items.find(name) != std::string::npos)
+			continue;
+
+		dock_existing_items = dock_existing_items + name;
+		dock_item item(app_info);
+		append(item);
 	}
 }
 

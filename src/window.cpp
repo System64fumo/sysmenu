@@ -31,14 +31,14 @@ sysmenu::sysmenu() {
 		if (fill_screen) {
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_LEFT, true);
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_RIGHT, true);
-			if (!gestures)
+			if (dock_items == "")
 				gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_BOTTOM, true);
 		}
 	}
 
 	// Experimental if you couldn't guess by the many TODOs (I am lazy)
-	if (gestures) {
+	if (dock_items != "") {
 		// TODO: Gestures currently have issues on non touchscreen inputs,
 		// Ideally this should be fixed..
 		// Buuuuuuut the better solution is to just disable non touchscreen input
@@ -113,7 +113,7 @@ sysmenu::sysmenu() {
 	if (searchbar) {
 		entry_search.add_controller(controller);
 		entry_search.get_style_context()->add_class("searchbar");
-		if (gestures) {
+		if (dock_items != "") {
 			box_top.append(revealer_search);
 			revealer_search.set_child(centerbox_top);
 			revealer_search.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);

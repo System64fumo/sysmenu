@@ -15,4 +15,7 @@ class dock : public Gtk::Box {
 	public:
 		dock();
 		void load_items(std::vector<std::shared_ptr<Gio::AppInfo>> items);
+
+	private:
+		std::string dock_existing_items;
 };
