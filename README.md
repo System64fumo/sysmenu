@@ -34,7 +34,7 @@ arguments:
   -H	Set window Height
   -l	Disable use of layer shell
   -v	Prints version info
-  -g	Enable touchscreen swipe gesture (Experimental)
+  -D	Set dock items ("Terminal,FileManager,WebBrowser,ect..")
   -f	Fullscreen
 ```
 

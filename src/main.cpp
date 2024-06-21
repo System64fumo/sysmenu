@@ -17,7 +17,7 @@ void handle_signal(int signum) {
 	switch (signum) {
 		case 10: // Showing window
 			win->get_style_context()->add_class("visible");
-			if (gestures) {
+			if (dock_items != "") {
 				win->revealer_search.set_reveal_child(true);
 				win->revealer_dock.set_reveal_child(false);
 				win->box_layout.set_valign(Gtk::Align::FILL);
@@ -32,7 +32,7 @@ void handle_signal(int signum) {
 			break;
 		case 12: // Hiding window
 			win->get_style_context()->remove_class("visible");
-			if (gestures) {
+			if (dock_items != "") {
 				win->revealer_search.set_reveal_child(false);
 				win->revealer_dock.set_reveal_child(true);
 				win->box_layout.set_valign(Gtk::Align::END);
@@ -46,7 +46,7 @@ void handle_signal(int signum) {
 				win->entry_search.set_text("");
 			break;
 		case 34: // Toggling window
-			if (gestures) {
+			if (dock_items != "") {
 				win->starting_height = win->box_layout.get_height();
 				if (win->box_layout.get_height() < win->max_height / 2)
 					handle_signal(10);
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
 	#ifdef RUNTIME_CONFIG
 	// Read launch arguments
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dM:dlgD:Sfvh")) {
+		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dM:dlD:Sfvh")) {
 			case 'S':
 				starthidden=true;
 				continue;
@@ -117,16 +117,10 @@ int main(int argc, char* argv[]) {
 				layer_shell=false;
 				continue;
 
-			case 'g':
-				gestures=true;
-
-				// Set these because we need them
-				layer_shell=true;
-				fill_screen=true;
-				continue;
-
 			case 'D':
 				dock_items=optarg;
+				layer_shell=true;
+				fill_screen=true;
 				continue;
 
 			case 'f':
@@ -155,7 +149,7 @@ int main(int argc, char* argv[]) {
 				std::cout << "  -H	Set window Height" << std::endl;
 				std::cout << "  -M	Set primary monitor" << std::endl;
 				std::cout << "  -l	Disable use of layer shell" << std::endl;
-				std::cout << "  -g	Enable touchscreen swipe gesture (Experimental)" << std::endl;
+				std::cout << "  -D	Set dock items" << std::endl;
 				std::cout << "  -f	Fullscreen" << std::endl;
 				std::cout << "  -v	Prints version info" << std::endl;
 				std::cout << "  -h	Show this help message" << std::endl;

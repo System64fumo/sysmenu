@@ -18,7 +18,6 @@ inline int width = 400;					// 400
 inline int height = 600;				// 600
 inline int main_monitor = 0;			// 0
 inline bool layer_shell = true;			// true
-inline bool gestures = false;			// false
 inline bool fill_screen = false;		// false
 inline std::string dock_items = "";		// ""
 
