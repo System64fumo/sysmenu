@@ -59,7 +59,7 @@ sysmenu::sysmenu() {
 		// Set up revealer
 		revealer_dock.set_child(sysmenu_dock);
 		revealer_dock.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
-		revealer_dock.set_transition_duration(1000);
+		revealer_dock.set_transition_duration(500);
 		revealer_dock.set_reveal_child(true);
 		revealer_search.set_reveal_child(false);
 
@@ -117,12 +117,13 @@ sysmenu::sysmenu() {
 			box_top.append(revealer_search);
 			revealer_search.set_child(centerbox_top);
 			revealer_search.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
-			revealer_search.set_transition_duration(1000);
-			revealer_search.get_style_context()->add_class("revealer_search");
+			revealer_search.set_transition_duration(500);
 		}
 		else {
 			box_layout.append(centerbox_top);
 		}
+
+		centerbox_top.get_style_context()->add_class("centerbox_top");
 		centerbox_top.set_center_widget(entry_search);
 		entry_search.set_icon_from_icon_name("search", Gtk::Entry::IconPosition::PRIMARY);
 		entry_search.set_placeholder_text("Search");
@@ -249,8 +250,8 @@ void sysmenu::on_drag_update(int x, int y) {
 
 	box_layout.set_size_request(-1, height);
 
-	revealer_dock.set_reveal_child((-y < 0));
-	revealer_search.set_reveal_child((-y > 0));
+	revealer_dock.set_reveal_child((-y < 1));
+	revealer_search.set_reveal_child((-y > 1));
 }
 
 void sysmenu::on_drag_stop(int x, int y) {
