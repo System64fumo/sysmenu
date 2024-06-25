@@ -1,17 +1,27 @@
 #include "dock.hpp"
 #include "config.hpp"
 
+std::string to_lowercase(const std::string &str) {
+	std::string result = str;
+	for (char& c : result)
+		c = std::tolower(c);
+	return result;
+}
+
 dock::dock() {
 	get_style_context()->add_class("dock");
 	set_halign(Gtk::Align::CENTER);
 	property_orientation().set_value(Gtk::Orientation::VERTICAL);
 	set_selection_mode(Gtk::SelectionMode::NONE);
 	signal_child_activated().connect(sigc::mem_fun(*this, &dock::on_child_activated));
+
+	// Make all items lowercase for easier detection
+	dock_items = to_lowercase(dock_items);
 }
 
 void dock::load_items(std::vector<std::shared_ptr<Gio::AppInfo>> items) {
 	for (const auto& app_info : items) {
-		std::string name = app_info->get_name();
+		std::string name = to_lowercase(app_info->get_name());
 
 		if (!app_info->should_show() || !app_info->get_icon())
 			continue;
