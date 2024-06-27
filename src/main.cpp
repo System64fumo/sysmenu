@@ -8,10 +8,6 @@
 #include <iostream>
 #include <thread>
 
-#ifdef RUNTIME_CONFIG
-#include <getopt.h>
-#endif
-
 /* Handle showing or hiding the window */
 void handle_signal(int signum) {
 	switch (signum) {
