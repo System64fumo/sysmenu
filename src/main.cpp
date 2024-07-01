@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
 	#ifdef RUNTIME_CONFIG
 	// Read launch arguments
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:dm:dubn:dp:dW:dH:dM:dlD:Sfvh")) {
+		switch(getopt(argc, argv, "Ssi:dI:dm:dubn:dp:dW:dH:dM:dlD:Sfvh")) {
 			case 'S':
 				starthidden=true;
 				continue;
@@ -77,6 +77,10 @@ int main(int argc, char* argv[]) {
 
 			case 'i':
 				icon_size=std::stoi(optarg);
+				continue;
+
+			case 'I':
+				dock_icon_size=std::stoi(optarg);
 				continue;
 
 			case 'm':
@@ -138,6 +142,7 @@ int main(int argc, char* argv[]) {
 				std::cout << "  -S	Hide the program on launch" << std::endl;
 				std::cout << "  -s	Hide the search bar" << std::endl;
 				std::cout << "  -i	Set launcher icon size" << std::endl;
+				std::cout << "  -I	Set dock icon size" << std::endl;
 				std::cout << "  -m	Set launcher margins" << std::endl;
 				std::cout << "  -u	Show name under icon" << std::endl;
 				std::cout << "  -b	Show scroll bars" << std::endl;
