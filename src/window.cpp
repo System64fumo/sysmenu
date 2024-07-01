@@ -237,7 +237,6 @@ void sysmenu::load_menu_item(Glib::RefPtr<Gio::AppInfo> app_info) {
 
 void sysmenu::on_drag_start(const double &x, const double &y) {
 	starting_height = box_layout.get_height();
-	gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 	gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
 	box_layout.set_valign(Gtk::Align::END);
 }
@@ -249,6 +248,7 @@ void sysmenu::on_drag_update(const double &x, const double &y) {
 
 	box_layout.set_size_request(-1, height);
 
+	gtk_layer_set_layer(win->gobj(), (-y < 1) ? GTK_LAYER_SHELL_LAYER_OVERLAY : GTK_LAYER_SHELL_LAYER_BOTTOM);
 	revealer_dock.set_reveal_child((-y < 1));
 	revealer_search.set_reveal_child((-y > 1));
 }
