@@ -9,6 +9,7 @@
 inline bool starthidden = false;		// false
 inline bool searchbar = true;			// true
 inline int icon_size = 32;				// 32
+inline int dock_icon_size = 64;			// 64
 inline int app_margin = 4;				// 4
 inline bool name_under_icon = false;	// false
 inline bool scroll_bars = false;		// false

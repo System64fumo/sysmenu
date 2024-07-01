@@ -25,6 +25,7 @@ arguments:
   -S	Hide the program on launch
   -s	Hide the search bar
   -i	Set launcher icon size
+  -I	Set dock icon size
   -m	Set launcher margins
   -u	Show name under icon
   -b	Show scroll bars

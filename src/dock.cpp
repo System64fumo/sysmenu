@@ -46,11 +46,11 @@ void dock::on_child_activated(Gtk::FlowBoxChild* child) {
 dock_item::dock_item(Glib::RefPtr<Gio::AppInfo> app) {
 	app_info = app;
 	get_style_context()->add_class("dock_item");
-	set_size_request(64, 64);
+	set_size_request(dock_icon_size, dock_icon_size);
 
 	set_child(image_icon);
 	image_icon.set(app->get_icon());
-	image_icon.set_pixel_size(64);
+	image_icon.set_pixel_size(dock_icon_size);
 
 	set_focus_on_click(false);
 }
