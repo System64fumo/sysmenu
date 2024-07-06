@@ -82,13 +82,12 @@ sysmenu::sysmenu() {
 	box_layout.property_orientation().set_value(Gtk::Orientation::VERTICAL);
 	set_child(box_layout);
 
-	// Max screen height
-	// TODO: Make this code better
 	// Sadly there does not seem to be a way to detect what the default monitor is
 	// Gotta assume or ask the user for their monitor of choice
-	GdkDisplay *display = gdk_display_get_default();
-	GListModel *monitors = gdk_display_get_monitors(display);
-	int monitorCount = g_list_model_get_n_items(monitors);
+	display = gdk_display_get_default();
+	monitors = gdk_display_get_monitors(display);
+	monitorCount = g_list_model_get_n_items(monitors);
+	monitor = GDK_MONITOR(g_list_model_get_item(monitors, main_monitor));
 
 	// Keep the values in check
 	if (main_monitor < 0)
@@ -98,16 +97,10 @@ sysmenu::sysmenu() {
 	else if (layer_shell)
 		gtk_layer_set_monitor(gobj(), GDK_MONITOR(g_list_model_get_item(monitors, main_monitor)));
 
-	GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_item(monitors, main_monitor));
-	GdkRectangle geometry;
-	gdk_monitor_get_geometry(monitor, &geometry);
-	max_height = geometry.height;
-
 	// Events 
 	auto controller = Gtk::EventControllerKey::create();
 	controller->signal_key_pressed().connect(
 	sigc::mem_fun(*this, &sysmenu::on_escape_key_press), true);
-	
 
 	if (searchbar) {
 		entry_search.add_controller(controller);
@@ -236,6 +229,10 @@ void sysmenu::load_menu_item(Glib::RefPtr<Gio::AppInfo> app_info) {
 }
 
 void sysmenu::on_drag_start(const double &x, const double &y) {
+	GdkRectangle geometry;
+	gdk_monitor_get_geometry(monitor, &geometry);
+	max_height = geometry.height;
+
 	starting_height = box_layout.get_height();
 	gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
 	box_layout.set_valign(Gtk::Align::END);
