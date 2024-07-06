@@ -31,6 +31,11 @@ class sysmenu : public Gtk::Window {
 		std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
 		std::vector<std::unique_ptr<launcher>> items;
 
+		GdkDisplay *display;
+		GListModel *monitors;
+		GdkMonitor *monitor;
+		int monitorCount;
+
 		Gtk::FlowBox flowbox_itembox;
 		Gtk::ScrolledWindow scrolled_window;
 		Gtk::Box box_top;
