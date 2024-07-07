@@ -13,10 +13,19 @@ dock::dock() {
 	set_halign(Gtk::Align::CENTER);
 	property_orientation().set_value(Gtk::Orientation::VERTICAL);
 	set_selection_mode(Gtk::SelectionMode::NONE);
+	set_sort_func(sigc::mem_fun(*this, &dock::on_sort));
 	signal_child_activated().connect(sigc::mem_fun(*this, &dock::on_child_activated));
 
 	// Make all items lowercase for easier detection
 	dock_items = to_lowercase(dock_items);
+
+	// Funky sorting
+	size_t index = 0;
+	std::stringstream ss(dock_items);
+	std::string item;
+	while (std::getline(ss, item, ',')) {
+		order_map[item] = index++;
+	}
 }
 
 void dock::load_items(std::vector<std::shared_ptr<Gio::AppInfo>> items) {
@@ -53,4 +62,22 @@ dock_item::dock_item(Glib::RefPtr<Gio::AppInfo> app) {
 	image_icon.set_pixel_size(dock_icon_size);
 
 	set_focus_on_click(false);
+}
+
+bool dock::on_sort(Gtk::FlowBoxChild *a, Gtk::FlowBoxChild *b) {
+	// Funky sorting part 2!
+	auto appinfo1 = dynamic_cast<dock_item*>(a)->app_info;
+	auto appinfo2 = dynamic_cast<dock_item*>(b)->app_info;
+
+	std::string name1 = to_lowercase(appinfo1->get_name());
+	std::string name2 = to_lowercase(appinfo2->get_name());
+
+	auto pos1 = order_map.find(name1);
+	auto pos2 = order_map.find(name2);
+
+	if (pos1 != order_map.end() && pos2 != order_map.end()) {
+		return pos1->second > pos2->second;
+	}
+
+	return false;
 }
