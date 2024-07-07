@@ -18,6 +18,9 @@ class dock : public Gtk::FlowBox {
 		void load_items(std::vector<std::shared_ptr<Gio::AppInfo>> items);
 
 	private:
+		std::vector<std::string> result;
+		std::map<std::string, int> order_map;
 		std::string dock_existing_items;
 		void on_child_activated(Gtk::FlowBoxChild* child);
+		bool on_sort(Gtk::FlowBoxChild *a, Gtk::FlowBoxChild *b);
 };
