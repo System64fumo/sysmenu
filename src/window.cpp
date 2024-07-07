@@ -229,6 +229,10 @@ void sysmenu::load_menu_item(Glib::RefPtr<Gio::AppInfo> app_info) {
 }
 
 void sysmenu::on_drag_start(const double &x, const double &y) {
+	// For now disable swipe gestures on non touch inputs
+	if (!gesture_drag->get_current_event()->get_pointer_emulated())
+		gesture_drag->reset();
+
 	GdkRectangle geometry;
 	gdk_monitor_get_geometry(monitor, &geometry);
 	max_height = geometry.height;
