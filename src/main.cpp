@@ -15,7 +15,7 @@ void handle_signal(int signum) {
 		case 10: // Showing window
 			gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 			win->get_style_context()->add_class("visible");
-			if (dock_items != "") {
+			if (win->config_main.dock_items != "") {
 				win->revealer_search.set_reveal_child(true);
 				win->revealer_dock.set_reveal_child(false);
 				win->box_layout.set_valign(Gtk::Align::FILL);
@@ -25,13 +25,13 @@ void handle_signal(int signum) {
 			else
 				win->show();
 
-			if (searchbar)
+			if (win->config_main.searchbar)
 				win->entry_search.grab_focus();
 			break;
 		case 12: // Hiding window
 			gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 			win->get_style_context()->remove_class("visible");
-			if (dock_items != "") {
+			if (win->config_main.dock_items != "") {
 				win->revealer_search.set_reveal_child(false);
 				win->revealer_dock.set_reveal_child(true);
 				win->box_layout.set_valign(Gtk::Align::END);
@@ -41,11 +41,11 @@ void handle_signal(int signum) {
 			else
 				win->hide();
 
-			if (searchbar)
+			if (win->config_main.searchbar)
 				win->entry_search.set_text("");
 			break;
 		case 34: // Toggling window
-			if (dock_items != "") {
+			if (win->config_main.dock_items != "") {
 				win->starting_height = win->box_layout.get_height();
 				if (win->box_layout.get_height() < win->max_height / 2)
 					handle_signal(10);
@@ -79,71 +79,72 @@ void load_libsysmenu() {
 }
 
 int main(int argc, char* argv[]) {
+	config config_main;
 
 	#ifdef RUNTIME_CONFIG
 	// Read launch arguments
 	while (true) {
 		switch(getopt(argc, argv, "Ssi:dI:dm:dubn:dp:dW:dH:dM:dlD:Sfvh")) {
 			case 'S':
-				starthidden=true;
+				config_main.starthidden=true;
 				continue;
 
 			case 's':
-				searchbar=false;
+				config_main.searchbar=false;
 				continue;
 
 			case 'i':
-				icon_size=std::stoi(optarg);
+				config_main.icon_size=std::stoi(optarg);
 				continue;
 
 			case 'I':
-				dock_icon_size=std::stoi(optarg);
+				config_main.dock_icon_size=std::stoi(optarg);
 				continue;
 
 			case 'm':
-				app_margin=std::stoi(optarg);
+				config_main.app_margin=std::stoi(optarg);
 				continue;
 
 			case 'u':
-				name_under_icon=true;
+				config_main.name_under_icon=true;
 				continue;
 
 			case 'b':
-				scroll_bars=true;
+				config_main.scroll_bars=true;
 				continue;
 
 			case 'n':
-				max_name_length=std::stoi(optarg);
+				config_main.max_name_length=std::stoi(optarg);
 				continue;
 
 			case 'p':
-				items_per_row=std::stoi(optarg);
+				config_main.items_per_row=std::stoi(optarg);
 				continue;
 
 			case 'W':
-				width=std::stoi(optarg);
+				config_main.width=std::stoi(optarg);
 				continue;
 
 			case 'H':
-				height=std::stoi(optarg);
+				config_main.height=std::stoi(optarg);
 				continue;
 
 			case 'M':
-				main_monitor=std::stoi(optarg);
+				config_main.main_monitor=std::stoi(optarg);
 				continue;
 
 			case 'l':
-				layer_shell=false;
+				config_main.layer_shell=false;
 				continue;
 
 			case 'D':
-				dock_items=optarg;
-				layer_shell=true;
-				fill_screen=true;
+				config_main.dock_items=optarg;
+				config_main.layer_shell=true;
+				config_main.fill_screen=true;
 				continue;
 
 			case 'f':
-				fill_screen=true;
+				config_main.fill_screen=true;
 				continue;
 
 			case 'v':
@@ -187,7 +188,7 @@ int main(int argc, char* argv[]) {
 	app->hold();
 
 	load_libsysmenu();
-	win = sysmenu_create_ptr();
+	win = sysmenu_create_ptr(config_main);
 
 	// Catch signals
 	signal(SIGUSR1, handle_signal);

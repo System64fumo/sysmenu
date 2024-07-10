@@ -18,26 +18,30 @@ void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 		load_menu_item(app);
 
 	// Load dock items
-	sysmenu_dock.load_items(app_list);
+	if (config_main.dock_items != "")
+		sysmenu_dock->load_items(app_list);
 }
 
-sysmenu::sysmenu() {
-	if (layer_shell) {
+sysmenu::sysmenu(const config &cfg) {
+	config_main = cfg;
+
+	if (config_main.layer_shell) {
 		gtk_layer_init_for_window(gobj());
 		gtk_layer_set_keyboard_mode(gobj(), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
 		gtk_layer_set_namespace(gobj(), "sysmenu");
 
-		if (fill_screen) {
+		if (config_main.fill_screen) {
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_LEFT, true);
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_RIGHT, true);
-			if (dock_items == "")
+			if (config_main.dock_items == "")
 				gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_BOTTOM, true);
 		}
 	}
 
 	// Dock
-	if (dock_items != "") {
+	if (config_main.dock_items != "") {
+		sysmenu_dock = Gtk::make_managed<dock>(config_main);
 		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 		// TODO: Gestures currently have issues on non touchscreen inputs,
 		// Ideally this should be fixed..
@@ -54,7 +58,7 @@ sysmenu::sysmenu() {
 		gesture_drag->signal_drag_end().connect(sigc::mem_fun(*this, &sysmenu::on_drag_stop));
 
 		// Set up revealer
-		revealer_dock.set_child(sysmenu_dock);
+		revealer_dock.set_child(*sysmenu_dock);
 		revealer_dock.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
 		revealer_dock.set_transition_duration(500);
 		revealer_dock.set_reveal_child(true);
@@ -68,16 +72,16 @@ sysmenu::sysmenu() {
 		//box_top.set_size_request(-1, 100);
 
 		// Set window height to the dock's height
-		height = 30;
+		config_main.height = 30;
 		box_layout.set_valign(Gtk::Align::END);
 	}
 	else
 		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 
 	// Initialize
-	set_default_size(width, height);
+	set_default_size(config_main.width, config_main.height);
 	set_hide_on_close(true);
-	if (!starthidden)
+	if (!config_main.starthidden)
 		show();
 	box_layout.property_orientation().set_value(Gtk::Orientation::VERTICAL);
 	set_child(box_layout);
@@ -87,25 +91,25 @@ sysmenu::sysmenu() {
 	display = gdk_display_get_default();
 	monitors = gdk_display_get_monitors(display);
 	monitorCount = g_list_model_get_n_items(monitors);
-	monitor = GDK_MONITOR(g_list_model_get_item(monitors, main_monitor));
+	monitor = GDK_MONITOR(g_list_model_get_item(monitors, config_main.main_monitor));
 
 	// Keep the values in check
-	if (main_monitor < 0)
-		main_monitor = 0;
-	else if (main_monitor >= monitorCount)
-		main_monitor = monitorCount - 1;
-	else if (layer_shell)
-		gtk_layer_set_monitor(gobj(), GDK_MONITOR(g_list_model_get_item(monitors, main_monitor)));
+	if (config_main.main_monitor < 0)
+		config_main.main_monitor = 0;
+	else if (config_main.main_monitor >= monitorCount)
+		config_main.main_monitor = monitorCount - 1;
+	else if (config_main.layer_shell)
+		gtk_layer_set_monitor(gobj(), GDK_MONITOR(g_list_model_get_item(monitors, config_main.main_monitor)));
 
 	// Events 
 	auto controller = Gtk::EventControllerKey::create();
 	controller->signal_key_pressed().connect(
 	sigc::mem_fun(*this, &sysmenu::on_escape_key_press), true);
 
-	if (searchbar) {
+	if (config_main.searchbar) {
 		entry_search.add_controller(controller);
 		entry_search.get_style_context()->add_class("searchbar");
-		if (dock_items != "") {
+		if (config_main.dock_items != "") {
 			box_top.append(revealer_search);
 			revealer_search.set_child(centerbox_top);
 			revealer_search.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
@@ -120,7 +124,7 @@ sysmenu::sysmenu() {
 		entry_search.set_icon_from_icon_name("search", Gtk::Entry::IconPosition::PRIMARY);
 		entry_search.set_placeholder_text("Search");
 		entry_search.set_margin(10);
-		entry_search.set_size_request(width - 20, -1);
+		entry_search.set_size_request(config_main.width - 20, -1);
 
 		entry_search.signal_changed().connect(sigc::mem_fun(*this, &sysmenu::on_search_changed));
 		entry_search.signal_activate().connect(sigc::mem_fun(*this, &sysmenu::on_search_done));
@@ -136,14 +140,14 @@ sysmenu::sysmenu() {
 	scrolled_window.get_style_context()->add_class("innerbox");
 	scrolled_window.set_child(flowbox_itembox);
 
-	if (!scroll_bars)
+	if (!config_main.scroll_bars)
 		scrolled_window.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
 
-	if (items_per_row != 1)
+	if (config_main.items_per_row != 1)
 		flowbox_itembox.set_halign(Gtk::Align::CENTER);
 	flowbox_itembox.set_valign(Gtk::Align::START);
-	flowbox_itembox.set_min_children_per_line(items_per_row);
-	flowbox_itembox.set_max_children_per_line(items_per_row);
+	flowbox_itembox.set_min_children_per_line(config_main.items_per_row);
+	flowbox_itembox.set_max_children_per_line(config_main.items_per_row);
 	flowbox_itembox.set_vexpand(true);
 	flowbox_itembox.signal_child_activated().connect(sigc::mem_fun(*this, &sysmenu::on_child_activated));
 
@@ -224,7 +228,7 @@ void sysmenu::load_menu_item(Glib::RefPtr<Gio::AppInfo> app_info) {
 	if (name.empty() || exec.empty())
 		return;
 
-	items.push_back(std::unique_ptr<launcher>(new launcher(app_info)));
+	items.push_back(std::unique_ptr<launcher>(new launcher(config_main, app_info)));
 	flowbox_itembox.append(*items.back());
 }
 
@@ -264,7 +268,7 @@ void sysmenu::on_drag_stop(const double &x, const double &y) {
 }
 
 extern "C" {
-	sysmenu *sysmenu_create() {
-		return new sysmenu();
+	sysmenu *sysmenu_create(const config &cfg) {
+		return new sysmenu(cfg);
 	}
 }
