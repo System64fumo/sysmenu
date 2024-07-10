@@ -1,16 +1,25 @@
 EXEC = sysmenu
 LIB = libsysmenu.so
 PKGS = gtkmm-4.0 gtk4-layer-shell-0
-SRCS +=	$(wildcard src/*.cpp)
-SRCS := $(filter-out src/main.cpp, $(SRCS))
+SRCS = $(filter-out src/main.cpp, $(wildcard src/*.cpp))
 OBJS = $(SRCS:.cpp=.o)
 DESTDIR = $(HOME)/.local
 
-CXXFLAGS = -march=native -mtune=native -Os -s -Wall -flto=auto -fno-exceptions
+CXXFLAGS = -march=native -mtune=native -Os -s -Wall -flto=auto -fno-exceptions -fPIC
 CXXFLAGS += $(shell pkg-config --cflags $(PKGS))
-LDFLAGS += $(shell pkg-config --libs $(PKGS)) -Wl,--gc-sections
+LDFLAGS = $(shell pkg-config --libs $(PKGS))
 
-$(EXEC): src/git_info.hpp $(LIB)
+all: $(EXEC) $(LIB)
+
+install: $(EXEC)
+	mkdir -p $(DESTDIR)/bin $(DESTDIR)/lib
+	install $(EXEC) $(DESTDIR)/bin/$(EXEC)
+	install $(EXEC) $(DESTDIR)/lib/$(LIB)
+
+clean:
+	rm $(EXEC) $(LIB) $(SRCS:.cpp=.o) src/git_info.hpp
+
+$(EXEC): src/main.cpp src/git_info.hpp
 	$(CXX) -o $(EXEC) \
 	src/main.cpp \
 	$(LDFLAGS) \
@@ -19,7 +28,6 @@ $(EXEC): src/git_info.hpp $(LIB)
 $(LIB): $(OBJS)
 	$(CXX) -o $(LIB) \
 	$(OBJS) \
-	$(LDFLAGS) \
 	$(CXXFLAGS) \
 	-shared
 
@@ -33,11 +41,3 @@ src/git_info.hpp:
 	commit_message=$$(git show -s --format=%s $$commit_hash); \
 	echo "#define GIT_COMMIT_MESSAGE \"$$commit_message\"" > src/git_info.hpp; \
 	echo "#define GIT_COMMIT_DATE \"$$commit_date\"" >> src/git_info.hpp
-
-install: $(EXEC)
-	mkdir -p $(DESTDIR)/bin $(DESTDIR)/lib
-	install $(EXEC) $(DESTDIR)/bin/$(EXEC)
-	install $(EXEC) $(DESTDIR)/lib/$(LIB)
-
-clean:
-	rm $(EXEC) $(LIB) $(SRCS:.cpp=.o) src/git_info.hpp
