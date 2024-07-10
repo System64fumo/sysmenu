@@ -4,9 +4,10 @@
 #include "launcher.hpp"
 #include "git_info.hpp"
 
+#include <gtkmm/application.h>
 #include <gtk4-layer-shell.h>
 #include <iostream>
-#include <thread>
+#include <dlfcn.h>
 
 /* Handle showing or hiding the window */
 void handle_signal(int signum) {
@@ -58,6 +59,22 @@ void handle_signal(int signum) {
 					handle_signal(10);
 			}
 			break;
+	}
+}
+
+void load_libsysmenu() {
+	void* handle = dlopen("libsysmenu.so", RTLD_LAZY);
+	if (!handle) {
+		std::cerr << "Cannot open library: " << dlerror() << '\n';
+		exit(1);
+	}
+
+	sysmenu_create_ptr = (sysmenu_create_func)dlsym(handle, "sysmenu_create");
+
+	if (!sysmenu_create_ptr) {
+		std::cerr << "Cannot load symbols: " << dlerror() << '\n';
+		dlclose(handle);
+		exit(1);
 	}
 }
 
@@ -166,14 +183,16 @@ int main(int argc, char* argv[]) {
 	}
 	#endif
 
+	Glib::RefPtr<Gtk::Application> app = Gtk::Application::create("funky.sys64.sysmenu");
+	app->hold();
+
+	load_libsysmenu();
+	win = sysmenu_create_ptr();
+
 	// Catch signals
 	signal(SIGUSR1, handle_signal);
 	signal(SIGUSR2, handle_signal);
 	signal(SIGRTMIN, handle_signal);
-
-	app = Gtk::Application::create("funky.sys64.sysmenu");
-	app->hold();
-	win = new sysmenu();
 
 	return app->run();
 }

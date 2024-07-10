@@ -249,7 +249,7 @@ void sysmenu::on_drag_update(const double &x, const double &y) {
 
 	box_layout.set_size_request(-1, height);
 
-	gtk_layer_set_layer(win->gobj(), (-y < 1) ? GTK_LAYER_SHELL_LAYER_OVERLAY : GTK_LAYER_SHELL_LAYER_BOTTOM);
+	gtk_layer_set_layer(gobj(), (-y < 1) ? GTK_LAYER_SHELL_LAYER_OVERLAY : GTK_LAYER_SHELL_LAYER_BOTTOM);
 	revealer_dock.set_reveal_child((-y < 1));
 	revealer_search.set_reveal_child((-y > 1));
 }
@@ -261,4 +261,10 @@ void sysmenu::on_drag_stop(const double &x, const double &y) {
 	// Bottom Position
 	else
 		handle_signal(12);
+}
+
+extern "C" {
+	sysmenu *sysmenu_create() {
+		return new sysmenu();
+	}
 }
