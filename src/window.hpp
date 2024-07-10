@@ -57,3 +57,7 @@ class sysmenu : public Gtk::Window {
 		void on_drag_update(const double &x, const double &y);
 		void on_drag_stop(const double &x, const double &y);
 };
+
+extern "C" {
+	sysmenu *sysmenu_create();
+}
