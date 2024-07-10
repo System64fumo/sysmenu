@@ -3,34 +3,34 @@
 #include "launcher.hpp"
 
 /* Launchers */
-launcher::launcher(Glib::RefPtr<Gio::AppInfo> app) : Gtk::Button(), app_info(app) {
+launcher::launcher(const config &config_main, Glib::RefPtr<Gio::AppInfo> app) : Gtk::Button(), app_info(app) {
 
 	name = app_info->get_name();
 	long_name = app_info->get_display_name();
 	progr = app_info->get_executable();
 	descr = app_info->get_description();
 
-	if (items_per_row == 1)
-		set_margin_top(app_margin);
+	if (config_main.items_per_row == 1)
+		set_margin_top(config_main.app_margin);
 	else
-		set_margin(app_margin);
+		set_margin(config_main.app_margin);
 
 	image_program.set(app->get_icon());
-	image_program.set_pixel_size(icon_size);
+	image_program.set_pixel_size(config_main.icon_size);
 
 	set_tooltip_text(descr);
 
-	if (long_name.length() > max_name_length)
-		label_program.set_text(long_name.substr(0, max_name_length - 2) + "..");
+	if (long_name.length() > config_main.max_name_length)
+		label_program.set_text(long_name.substr(0, config_main.max_name_length - 2) + "..");
 	else
 		label_program.set_text(long_name);
 
 	int size_request = -1;
-	if (name_under_icon) {
+	if (config_main.name_under_icon) {
 		box_launcher.set_orientation(Gtk::Orientation::VERTICAL);
 		box_launcher.set_valign(Gtk::Align::CENTER);
 		set_valign(Gtk::Align::START);
-		size_request = max_name_length * 10;
+		size_request = config_main.max_name_length * 10;
 	}
 	else
 		label_program.property_margin_start().set_value(10);

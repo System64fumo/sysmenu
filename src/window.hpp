@@ -14,12 +14,13 @@
 
 class sysmenu : public Gtk::Window {
 	public:
-		sysmenu();
+		sysmenu(const config &cfg);
 
+		config config_main;
 		int starting_height = 0;
 		int max_height;
 
-		dock sysmenu_dock;
+		dock *sysmenu_dock;
 		Gtk::Entry entry_search;
 		Gtk::Box box_layout;
 		Gtk::Revealer revealer_dock;
@@ -59,5 +60,5 @@ class sysmenu : public Gtk::Window {
 };
 
 extern "C" {
-	sysmenu *sysmenu_create();
+	sysmenu *sysmenu_create(const config &cfg);
 }

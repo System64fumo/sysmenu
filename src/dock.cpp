@@ -1,5 +1,4 @@
 #include "dock.hpp"
-#include "config.hpp"
 
 std::string to_lowercase(const std::string &str) {
 	std::string result = str;
@@ -8,7 +7,8 @@ std::string to_lowercase(const std::string &str) {
 	return result;
 }
 
-dock::dock() {
+dock::dock(const config &cfg) {
+	config_main = cfg;
 	get_style_context()->add_class("dock");
 	set_halign(Gtk::Align::CENTER);
 	property_orientation().set_value(Gtk::Orientation::VERTICAL);
@@ -17,11 +17,11 @@ dock::dock() {
 	signal_child_activated().connect(sigc::mem_fun(*this, &dock::on_child_activated));
 
 	// Make all items lowercase for easier detection
-	dock_items = to_lowercase(dock_items);
+	config_main.dock_items = to_lowercase(config_main.dock_items);
 
 	// Funky sorting
 	size_t index = 0;
-	std::stringstream ss(dock_items);
+	std::stringstream ss(config_main.dock_items);
 	std::string item;
 	while (std::getline(ss, item, ',')) {
 		order_map[item] = index++;
@@ -35,14 +35,14 @@ void dock::load_items(std::vector<std::shared_ptr<Gio::AppInfo>> items) {
 		if (!app_info->should_show() || !app_info->get_icon())
 			continue;
 
-		if (dock_items.find(name) == std::string::npos)
+		if (config_main.dock_items.find(name) == std::string::npos)
 			continue;
 
 		if (dock_existing_items.find(name) != std::string::npos)
 			continue;
 
 		dock_existing_items = dock_existing_items + name;
-		auto item = Gtk::make_managed<dock_item>(app_info);
+		auto item = Gtk::make_managed<dock_item>(app_info, config_main.dock_icon_size);
 		append(*item);
 	}
 }
@@ -52,14 +52,14 @@ void dock::on_child_activated(Gtk::FlowBoxChild* child) {
 	button->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
 }
 
-dock_item::dock_item(Glib::RefPtr<Gio::AppInfo> app) {
+dock_item::dock_item(Glib::RefPtr<Gio::AppInfo> app, const int &icon_size) {
 	app_info = app;
 	get_style_context()->add_class("dock_item");
-	set_size_request(dock_icon_size, dock_icon_size);
+	set_size_request(icon_size, icon_size);
 
 	set_child(image_icon);
 	image_icon.set(app->get_icon());
-	image_icon.set_pixel_size(dock_icon_size);
+	image_icon.set_pixel_size(icon_size);
 
 	set_focus_on_click(false);
 }

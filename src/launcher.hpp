@@ -7,7 +7,7 @@
 
 class launcher : public Gtk::Button {
 	public:
-		launcher(Glib::RefPtr<Gio::AppInfo> app);
+		launcher(const config &config_main, Glib::RefPtr<Gio::AppInfo> app);
 		Glib::RefPtr<Gio::AppInfo> app_info;
 
 		bool matches(Glib::ustring text);
