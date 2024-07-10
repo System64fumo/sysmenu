@@ -93,6 +93,10 @@ sysmenu::sysmenu(const config &cfg) {
 	monitorCount = g_list_model_get_n_items(monitors);
 	monitor = GDK_MONITOR(g_list_model_get_item(monitors, config_main.main_monitor));
 
+	GdkRectangle geometry;
+	gdk_monitor_get_geometry(monitor, &geometry);
+	max_height = geometry.height;
+
 	// Keep the values in check
 	if (config_main.main_monitor < 0)
 		config_main.main_monitor = 0;
