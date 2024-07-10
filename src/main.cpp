@@ -9,57 +9,8 @@
 #include <iostream>
 #include <dlfcn.h>
 
-/* Handle showing or hiding the window */
 void handle_signal(int signum) {
-	switch (signum) {
-		case 10: // Showing window
-			gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
-			win->get_style_context()->add_class("visible");
-			if (win->config_main.dock_items != "") {
-				win->revealer_search.set_reveal_child(true);
-				win->revealer_dock.set_reveal_child(false);
-				win->box_layout.set_valign(Gtk::Align::FILL);
-				win->box_layout.set_size_request(-1, win->max_height);
-				gtk_layer_set_anchor(win->gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
-			}
-			else
-				win->show();
-
-			if (win->config_main.searchbar)
-				win->entry_search.grab_focus();
-			break;
-		case 12: // Hiding window
-			gtk_layer_set_layer(win->gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
-			win->get_style_context()->remove_class("visible");
-			if (win->config_main.dock_items != "") {
-				win->revealer_search.set_reveal_child(false);
-				win->revealer_dock.set_reveal_child(true);
-				win->box_layout.set_valign(Gtk::Align::END);
-				win->box_layout.set_size_request(-1, -1);
-				gtk_layer_set_anchor(win->gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
-			}
-			else
-				win->hide();
-
-			if (win->config_main.searchbar)
-				win->entry_search.set_text("");
-			break;
-		case 34: // Toggling window
-			if (win->config_main.dock_items != "") {
-				win->starting_height = win->box_layout.get_height();
-				if (win->box_layout.get_height() < win->max_height / 2)
-					handle_signal(10);
-				else
-					handle_signal(12);
-			}
-			else {
-				if (win->is_visible())
-					handle_signal(12);
-				else
-					handle_signal(10);
-			}
-			break;
-	}
+	sysmenu_handle_signal_ptr(win, signum);
 }
 
 void load_libsysmenu() {
@@ -70,8 +21,9 @@ void load_libsysmenu() {
 	}
 
 	sysmenu_create_ptr = (sysmenu_create_func)dlsym(handle, "sysmenu_create");
+	sysmenu_handle_signal_ptr = (sysmenu_handle_signal_func)dlsym(handle, "sysmenu_handle_signal");
 
-	if (!sysmenu_create_ptr) {
+	if (!sysmenu_create_ptr || !sysmenu_handle_signal_ptr ) {
 		std::cerr << "Cannot load symbols: " << dlerror() << '\n';
 		dlclose(handle);
 		exit(1);

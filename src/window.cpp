@@ -232,10 +232,64 @@ void sysmenu::load_menu_item(Glib::RefPtr<Gio::AppInfo> app_info) {
 	flowbox_itembox.append(*items.back());
 }
 
+void sysmenu::handle_signal(int signum) {
+	switch (signum) {
+		case 10: // Showing window
+			gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
+			get_style_context()->add_class("visible");
+			if (config_main.dock_items != "") {
+				revealer_search.set_reveal_child(true);
+				revealer_dock.set_reveal_child(false);
+				box_layout.set_valign(Gtk::Align::FILL);
+				box_layout.set_size_request(-1, max_height);
+				gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
+			}
+			else
+				show();
+
+			if (config_main.searchbar)
+				entry_search.grab_focus();
+			break;
+		case 12: // Hiding window
+			gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
+			get_style_context()->remove_class("visible");
+			if (config_main.dock_items != "") {
+				revealer_search.set_reveal_child(false);
+				revealer_dock.set_reveal_child(true);
+				box_layout.set_valign(Gtk::Align::END);
+				box_layout.set_size_request(-1, -1);
+				gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
+			}
+			else
+				hide();
+
+			if (config_main.searchbar)
+				entry_search.set_text("");
+			break;
+		case 34: // Toggling window
+			if (config_main.dock_items != "") {
+				starting_height = box_layout.get_height();
+				if (box_layout.get_height() < max_height / 2)
+					handle_signal(10);
+				else
+					handle_signal(12);
+			}
+			else {
+				if (is_visible())
+					handle_signal(12);
+				else
+					handle_signal(10);
+			}
+			break;
+	}
+}
+
 void sysmenu::on_drag_start(const double &x, const double &y) {
 	// For now disable swipe gestures on non touch inputs
-	if (!gesture_drag->get_current_event()->get_pointer_emulated())
+	if (!gesture_drag->get_current_event()->get_pointer_emulated()) {
 		gesture_drag->reset();
+		return;
+	}
 
 	GdkRectangle geometry;
 	gdk_monitor_get_geometry(monitor, &geometry);
@@ -259,6 +313,12 @@ void sysmenu::on_drag_update(const double &x, const double &y) {
 }
 
 void sysmenu::on_drag_stop(const double &x, const double &y) {
+	// For now disable swipe gestures on non touch inputs
+	if (!gesture_drag->get_current_event()->get_pointer_emulated()) {
+		gesture_drag->reset();
+		return;
+	}
+
 	// Top position
 	if (box_layout.get_height() > max_height / 2)
 		handle_signal(10);
@@ -270,5 +330,8 @@ void sysmenu::on_drag_stop(const double &x, const double &y) {
 extern "C" {
 	sysmenu *sysmenu_create(const config &cfg) {
 		return new sysmenu(cfg);
+	}
+	void sysmenu_handle_signal(sysmenu *window, int signal) {
+		window->handle_signal(signal);
 	}
 }

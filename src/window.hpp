@@ -20,6 +20,8 @@ class sysmenu : public Gtk::Window {
 		int starting_height = 0;
 		int max_height;
 
+		void handle_signal(int signum);
+
 		dock *sysmenu_dock;
 		Gtk::Entry entry_search;
 		Gtk::Box box_layout;
@@ -61,4 +63,5 @@ class sysmenu : public Gtk::Window {
 
 extern "C" {
 	sysmenu *sysmenu_create(const config &cfg);
+	void syspower_handle_signal(sysmenu *window, int signal);
 }
