@@ -14,7 +14,7 @@ all: $(EXEC) $(LIB)
 install: $(EXEC)
 	mkdir -p $(DESTDIR)/bin $(DESTDIR)/lib
 	install $(EXEC) $(DESTDIR)/bin/$(EXEC)
-	install $(EXEC) $(DESTDIR)/lib/$(LIB)
+	install $(LIB) $(DESTDIR)/lib/$(LIB)
 
 clean:
 	rm $(EXEC) $(LIB) $(SRCS:.cpp=.o) src/git_info.hpp
