@@ -4,23 +4,9 @@
 #include "config.hpp"
 
 #include <gtkmm/eventcontrollerkey.h>
-#include <giomm/desktopappinfo.h>
 #include <gtk4-layer-shell.h>
 #include <thread>
 #include <iostream>
-
-void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
-	app_list = Gio::AppInfo::get_all();
-	flowbox_itembox.remove_all();
-
-	// Load applications
-	for (auto app : app_list)
-		load_menu_item(app);
-
-	// Load dock items
-	if (config_main.dock_items != "")
-		sysmenu_dock->load_items(app_list);
-}
 
 sysmenu::sysmenu(const config &cfg) {
 	config_main = cfg;
@@ -43,10 +29,6 @@ sysmenu::sysmenu(const config &cfg) {
 	if (config_main.dock_items != "") {
 		sysmenu_dock = Gtk::make_managed<dock>(config_main);
 		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
-		// TODO: Gestures currently have issues on non touchscreen inputs,
-		// Ideally this should be fixed..
-		// However we don't live in an ideal world so tough luck!
-
 		// TODO: Dragging causes the inner scrollbox to resize, This is bad as
 		// it uses a lot of cpu power trying to resize things.
 		// Is this even possible to fix?
@@ -69,7 +51,6 @@ sysmenu::sysmenu(const config &cfg) {
 		box_top.append(revealer_dock);
 		box_top.property_orientation().set_value(Gtk::Orientation::VERTICAL);
 		box_top.add_controller(gesture_drag);
-		//box_top.set_size_request(-1, 100);
 
 		// Set window height to the dock's height
 		config_main.height = 30;
@@ -165,7 +146,7 @@ sysmenu::sysmenu(const config &cfg) {
 	g_signal_connect(app_info_monitor, "changed", G_CALLBACK(+[](GAppInfoMonitor* monitor, gpointer user_data) {
 		sysmenu* self = static_cast<sysmenu*>(user_data);
 		self->app_info_changed(monitor);
-		}), this);
+	}), this);
 
 	std::thread thread_appinfo(&sysmenu::app_info_changed, this, nullptr);
 	thread_appinfo.detach();
@@ -190,7 +171,6 @@ void sysmenu::on_search_changed() {
 	flowbox_itembox.invalidate_filter();
 }
 
-// Launch the selected program
 void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
 	launcher *button = dynamic_cast<launcher*>(child->get_child());
 	button->on_click();
@@ -221,7 +201,20 @@ bool sysmenu::on_sort(Gtk::FlowBoxChild* a, Gtk::FlowBoxChild* b) {
 	return *b2 < *b1;
 }
 
-void sysmenu::load_menu_item(Glib::RefPtr<Gio::AppInfo> app_info) {
+void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
+	app_list = Gio::AppInfo::get_all();
+	flowbox_itembox.remove_all();
+
+	// Load applications
+	for (auto app : app_list)
+		load_menu_item(app);
+
+	// Load dock items
+	if (config_main.dock_items != "")
+		sysmenu_dock->load_items(app_list);
+}
+
+void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 	if (!app_info || !app_info->should_show() || !app_info->get_icon())
 		return;
 
@@ -290,6 +283,7 @@ void sysmenu::handle_signal(int signum) {
 
 void sysmenu::on_drag_start(const double &x, const double &y) {
 	// For now disable swipe gestures on non touch inputs
+	// since they're broken on on touch devices
 	if (!gesture_drag->get_current_event()->get_pointer_emulated()) {
 		gesture_drag->reset();
 		return;
@@ -318,6 +312,7 @@ void sysmenu::on_drag_update(const double &x, const double &y) {
 
 void sysmenu::on_drag_stop(const double &x, const double &y) {
 	// For now disable swipe gestures on non touch inputs
+	// since they're broken on on touch devices
 	if (!gesture_drag->get_current_event()->get_pointer_emulated()) {
 		gesture_drag->reset();
 		return;

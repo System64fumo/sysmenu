@@ -5,7 +5,6 @@
 #include "git_info.hpp"
 
 #include <gtkmm/application.h>
-#include <gtk4-layer-shell.h>
 #include <iostream>
 #include <dlfcn.h>
 
@@ -23,7 +22,7 @@ void load_libsysmenu() {
 	sysmenu_create_ptr = (sysmenu_create_func)dlsym(handle, "sysmenu_create");
 	sysmenu_handle_signal_ptr = (sysmenu_handle_signal_func)dlsym(handle, "sysmenu_handle_signal");
 
-	if (!sysmenu_create_ptr || !sysmenu_handle_signal_ptr ) {
+	if (!sysmenu_create_ptr || !sysmenu_handle_signal_ptr) {
 		std::cerr << "Cannot load symbols: " << dlerror() << '\n';
 		dlclose(handle);
 		exit(1);
