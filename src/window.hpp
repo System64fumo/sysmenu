@@ -15,7 +15,7 @@
 class sysmenu : public Gtk::Window {
 	public:
 		sysmenu(const config &cfg);
-		void handle_signal(int signum);
+		void handle_signal(const int &signum);
 
 	private:
 		config config_main;

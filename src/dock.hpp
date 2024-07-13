@@ -7,7 +7,7 @@
 
 class dock_item : public Gtk::FlowBoxChild {
 	public:
-		dock_item(Glib::RefPtr<Gio::AppInfo> app, const int &icon_size);
+		dock_item(const Glib::RefPtr<Gio::AppInfo> &app, const int &icon_size);
 		Glib::RefPtr<Gio::AppInfo> app_info;
 
 	private:
@@ -17,7 +17,7 @@ class dock_item : public Gtk::FlowBoxChild {
 class dock : public Gtk::FlowBox {
 	public:
 		dock(const config &cfg);
-		void load_items(std::vector<std::shared_ptr<Gio::AppInfo>> items);
+		void load_items(const std::vector<std::shared_ptr<Gio::AppInfo>> &items);
 
 	private:
 		config config_main;
@@ -25,4 +25,5 @@ class dock : public Gtk::FlowBox {
 		std::string dock_existing_items;
 		void on_child_activated(Gtk::FlowBoxChild* child);
 		bool on_sort(Gtk::FlowBoxChild *a, Gtk::FlowBoxChild *b);
+		std::string to_lowercase(const std::string &str);
 };
