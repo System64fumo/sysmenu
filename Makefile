@@ -19,9 +19,10 @@ install: $(EXEC)
 clean:
 	rm $(EXEC) $(LIB) $(SRCS:.cpp=.o) src/git_info.hpp
 
-$(EXEC): src/main.cpp src/git_info.hpp
+$(EXEC): src/main.cpp src/git_info.hpp src/config_parser.o
 	$(CXX) -o $(EXEC) \
 	src/main.cpp \
+	src/config_parser.o \
 	$(LDFLAGS) \
 	$(CXXFLAGS)
 

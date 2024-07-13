@@ -17,9 +17,10 @@ But also because i disliked how the current programs i used behaved.<br>
 So instead of fixing them i created my own!<br>
 
 # Configuration
-sysmenu can be configured in 2 ways<br>
+sysmenu can be configured in 3 ways<br>
 1: By changing config.h and recompiling (Suckless style)<br>
-2: Using launch arguments<br>
+2: Using a config file (~/.config/sys64/menu/config.conf)<br>
+3: Using launch arguments<br>
 ```
 arguments:
   -S	Hide the program on launch

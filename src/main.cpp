@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include "window.hpp"
 #include "config.hpp"
+#include "config_parser.hpp"
 #include "launcher.hpp"
 #include "git_info.hpp"
 
@@ -31,6 +32,68 @@ void load_libsysmenu() {
 
 int main(int argc, char* argv[]) {
 	config config_main;
+
+	// Load the config
+	#ifdef CONFIG_FILE
+	config_parser config(std::string(getenv("HOME")) + "/.config/sys64/menu/config.conf");
+
+	std::string cfg_start_hidden = config.get_value("main", "start-hidden");
+	config_main.starthidden = (cfg_start_hidden == "true");
+
+	std::string cfg_searchbar = config.get_value("main", "searchbar");
+	config_main.searchbar = (cfg_searchbar == "true");
+
+	std::string cfg_icon_size = config.get_value("main", "icon-size");
+	if (cfg_icon_size != "empty")
+		config_main.icon_size = std::stoi(cfg_icon_size);
+
+	std::string cfg_dock_icon_size = config.get_value("main", "dock-icon-size");
+	if (cfg_dock_icon_size != "empty")
+		config_main.dock_icon_size = std::stoi(cfg_dock_icon_size);
+
+	std::string cfg_app_margins = config.get_value("main", "app-margins");
+	if (cfg_app_margins != "empty")
+		config_main.app_margin = std::stoi(cfg_app_margins);
+
+	std::string cfg_name_under_icon = config.get_value("main", "name-under-icon");
+	config_main.name_under_icon = (cfg_name_under_icon == "true");
+
+	std::string cfg_scroll_bars = config.get_value("main", "scroll-bars");
+	config_main.scroll_bars = (cfg_scroll_bars == "true");
+
+	std::string cfg_name_length = config.get_value("main", "name-length");
+	if (cfg_name_length != "empty")
+		config_main.max_name_length = std::stoi(cfg_name_length);
+
+	std::string cfg_items_per_row = config.get_value("main", "items-per-row");
+	if (cfg_items_per_row != "empty")
+		config_main.items_per_row = std::stoi(cfg_items_per_row);
+
+	std::string cfg_width = config.get_value("main", "width");
+	if (cfg_width != "empty")
+		config_main.width = std::stoi(cfg_width);
+
+	std::string cfg_height =  config.get_value("main", "height");
+	if (cfg_height != "empty")
+		config_main.height=std::stoi(cfg_height);
+
+	std::string cfg_monitor =  config.get_value("main", "monitor");
+	if (cfg_monitor != "empty")
+		config_main.main_monitor=std::stoi(cfg_monitor);
+
+	std::string cfg_layer_shell =  config.get_value("main", "layer-shell");
+	config_main.layer_shell = (cfg_layer_shell == "true");
+
+	std::string cfg_fullscreen =  config.get_value("main", "fullscreen");
+	config_main.fill_screen = (cfg_fullscreen == "true");
+
+	std::string cfg_dock_items =  config.get_value("main", "dock-items");
+	if (!cfg_dock_items.empty()) {
+		config_main.dock_items = cfg_dock_items;
+		config_main.layer_shell = true;
+		config_main.fill_screen = true;
+	}
+	#endif
 
 	#ifdef RUNTIME_CONFIG
 	// Read launch arguments
