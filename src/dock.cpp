@@ -1,12 +1,5 @@
 #include "dock.hpp"
 
-std::string to_lowercase(const std::string &str) {
-	std::string result = str;
-	for (char& c : result)
-		c = std::tolower(c);
-	return result;
-}
-
 dock::dock(const config &cfg) {
 	config_main = cfg;
 	get_style_context()->add_class("dock");
@@ -28,7 +21,7 @@ dock::dock(const config &cfg) {
 	}
 }
 
-void dock::load_items(std::vector<std::shared_ptr<Gio::AppInfo>> items) {
+void dock::load_items(const std::vector<std::shared_ptr<Gio::AppInfo>> &items) {
 	for (const auto& app_info : items) {
 		std::string name = to_lowercase(app_info->get_name());
 
@@ -52,7 +45,7 @@ void dock::on_child_activated(Gtk::FlowBoxChild* child) {
 	button->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
 }
 
-dock_item::dock_item(Glib::RefPtr<Gio::AppInfo> app, const int &icon_size) {
+dock_item::dock_item(const Glib::RefPtr<Gio::AppInfo> &app, const int &icon_size) {
 	app_info = app;
 	get_style_context()->add_class("dock_item");
 	set_size_request(icon_size, icon_size);
@@ -80,4 +73,11 @@ bool dock::on_sort(Gtk::FlowBoxChild *a, Gtk::FlowBoxChild *b) {
 	}
 
 	return false;
+}
+
+std::string dock::to_lowercase(const std::string &str) {
+	std::string result = str;
+	for (char& c : result)
+		c = std::tolower(c);
+	return result;
 }

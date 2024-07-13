@@ -174,6 +174,7 @@ void sysmenu::on_search_changed() {
 void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
 	launcher *button = dynamic_cast<launcher*>(child->get_child());
 	button->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
+	handle_signal(12);
 }
 
 void sysmenu::on_search_done() {
@@ -229,7 +230,7 @@ void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 	flowbox_itembox.append(*items.back());
 }
 
-void sysmenu::handle_signal(int signum) {
+void sysmenu::handle_signal(const int &signum) {
 	switch (signum) {
 		case 10: // Showing window
 			gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);

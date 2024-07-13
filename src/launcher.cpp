@@ -1,7 +1,6 @@
-#include "config.hpp"
 #include "launcher.hpp"
 
-launcher::launcher(const config &config_main, Glib::RefPtr<Gio::AppInfo> app) : Gtk::Button(), app_info(app) {
+launcher::launcher(const config &config_main, const Glib::RefPtr<Gio::AppInfo> &app) : Gtk::Box(), app_info(app) {
 	name = app_info->get_name();
 	long_name = app_info->get_display_name();
 	progr = app_info->get_executable();
@@ -15,8 +14,6 @@ launcher::launcher(const config &config_main, Glib::RefPtr<Gio::AppInfo> app) : 
 	image_program.set(app->get_icon());
 	image_program.set_pixel_size(config_main.icon_size);
 
-	set_tooltip_text(descr);
-
 	if (long_name.length() > config_main.max_name_length)
 		label_program.set_text(long_name.substr(0, config_main.max_name_length - 2) + "..");
 	else
@@ -24,24 +21,25 @@ launcher::launcher(const config &config_main, Glib::RefPtr<Gio::AppInfo> app) : 
 
 	int size_request = -1;
 	if (config_main.name_under_icon) {
-		box_launcher.set_orientation(Gtk::Orientation::VERTICAL);
-		box_launcher.set_valign(Gtk::Align::CENTER);
-		set_valign(Gtk::Align::START);
+		set_orientation(Gtk::Orientation::VERTICAL);
 		size_request = config_main.max_name_length * 10;
+		image_program.set_vexpand(true);
+		image_program.set_valign(Gtk::Align::END);
+		label_program.set_margin_top(3);
+		label_program.set_vexpand(true);
+		label_program.set_valign(Gtk::Align::START);
 	}
 	else
 		label_program.property_margin_start().set_value(10);
 
-	box_launcher.append(image_program);
-	box_launcher.append(label_program);
+	append(image_program);
+	append(label_program);
 
-	set_child(box_launcher);
-
-	set_can_focus(false);
 	set_hexpand(true);
 	set_size_request(size_request, size_request);
 
-	get_style_context()->add_class("flat");
+	get_style_context()->add_class("launcher");
+	set_tooltip_text(descr);
 }
 
 bool launcher::matches(Glib::ustring pattern) {
