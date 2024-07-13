@@ -1,8 +1,6 @@
 #include "main.hpp"
-#include "window.hpp"
 #include "config.hpp"
 #include "config_parser.hpp"
-#include "launcher.hpp"
 #include "git_info.hpp"
 
 #include <gtkmm/application.h>
@@ -31,8 +29,6 @@ void load_libsysmenu() {
 }
 
 int main(int argc, char* argv[]) {
-	config config_main;
-
 	// Load the config
 	#ifdef CONFIG_FILE
 	config_parser config(std::string(getenv("HOME")) + "/.config/sys64/menu/config.conf");

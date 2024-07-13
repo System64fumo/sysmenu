@@ -173,7 +173,7 @@ void sysmenu::on_search_changed() {
 
 void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
 	launcher *button = dynamic_cast<launcher*>(child->get_child());
-	button->on_click();
+	button->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
 }
 
 void sysmenu::on_search_done() {

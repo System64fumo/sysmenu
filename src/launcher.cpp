@@ -1,10 +1,7 @@
-#include "main.hpp"
 #include "config.hpp"
 #include "launcher.hpp"
 
-/* Launchers */
 launcher::launcher(const config &config_main, Glib::RefPtr<Gio::AppInfo> app) : Gtk::Button(), app_info(app) {
-
 	name = app_info->get_name();
 	long_name = app_info->get_display_name();
 	progr = app_info->get_executable();
@@ -45,12 +42,6 @@ launcher::launcher(const config &config_main, Glib::RefPtr<Gio::AppInfo> app) : 
 	set_size_request(size_request, size_request);
 
 	get_style_context()->add_class("flat");
-	signal_clicked().connect(sigc::mem_fun(*this, &launcher::on_click));
-}
-
-void launcher::on_click() {
-	app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
-	handle_signal(12);
 }
 
 bool launcher::matches(Glib::ustring pattern) {

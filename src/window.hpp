@@ -61,5 +61,5 @@ class sysmenu : public Gtk::Window {
 
 extern "C" {
 	sysmenu *sysmenu_create(const config &cfg);
-	void syspower_handle_signal(sysmenu *window, int signal);
+	void sysmenu_handle_signal(sysmenu *window, int signal);
 }

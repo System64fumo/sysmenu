@@ -12,7 +12,6 @@ class launcher : public Gtk::Button {
 
 		bool matches(Glib::ustring text);
 		bool operator < (const launcher& other);
-		void on_click();
 
 	private:
 		Gtk::Box box_launcher;
