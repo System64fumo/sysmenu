@@ -14,11 +14,11 @@
 
 class sysmenu : public Gtk::Window {
 	public:
-		sysmenu(const config &cfg);
+		sysmenu(const config_menu &cfg);
 		void handle_signal(const int &signum);
 
 	private:
-		config config_main;
+		config_menu config_main;
 		int starting_height = 0;
 		int max_height;
 
@@ -60,6 +60,6 @@ class sysmenu : public Gtk::Window {
 };
 
 extern "C" {
-	sysmenu *sysmenu_create(const config &cfg);
-	void sysmenu_handle_signal(sysmenu *window, int signal);
+	sysmenu *sysmenu_create(const config_menu &cfg);
+	void sysmenu_signal(sysmenu *window, int signal);
 }

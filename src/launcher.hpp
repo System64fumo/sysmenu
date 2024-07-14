@@ -8,7 +8,7 @@
 
 class launcher : public Gtk::Box {
 	public:
-		launcher(const config &config_main, const Glib::RefPtr<Gio::AppInfo> &app);
+		launcher(const config_menu &config_main, const Glib::RefPtr<Gio::AppInfo> &app);
 		Glib::RefPtr<Gio::AppInfo> app_info;
 
 		bool matches(Glib::ustring text);

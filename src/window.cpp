@@ -8,7 +8,7 @@
 #include <thread>
 #include <iostream>
 
-sysmenu::sysmenu(const config &cfg) {
+sysmenu::sysmenu(const config_menu &cfg) {
 	config_main = cfg;
 
 	if (config_main.layer_shell) {
@@ -328,10 +328,10 @@ void sysmenu::on_drag_stop(const double &x, const double &y) {
 }
 
 extern "C" {
-	sysmenu *sysmenu_create(const config &cfg) {
+	sysmenu *sysmenu_create(const config_menu &cfg) {
 		return new sysmenu(cfg);
 	}
-	void sysmenu_handle_signal(sysmenu *window, int signal) {
+	void sysmenu_signal(sysmenu *window, int signal) {
 		window->handle_signal(signal);
 	}
 }

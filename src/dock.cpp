@@ -1,6 +1,6 @@
 #include "dock.hpp"
 
-dock::dock(const config &cfg) {
+dock::dock(const config_menu &cfg) {
 	config_main = cfg;
 	get_style_context()->add_class("dock");
 	set_halign(Gtk::Align::CENTER);
