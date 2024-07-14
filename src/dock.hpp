@@ -16,11 +16,11 @@ class dock_item : public Gtk::FlowBoxChild {
 
 class dock : public Gtk::FlowBox {
 	public:
-		dock(const config &cfg);
+		dock(const config_menu &cfg);
 		void load_items(const std::vector<std::shared_ptr<Gio::AppInfo>> &items);
 
 	private:
-		config config_main;
+		config_menu config_main;
 		std::map<std::string, int> order_map;
 		std::string dock_existing_items;
 		void on_child_activated(Gtk::FlowBoxChild* child);

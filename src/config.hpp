@@ -6,7 +6,7 @@
 #define CONFIG_FILE						// Allow the use of a config file
 
 // Default config
-struct config {
+struct config_menu {
 	bool starthidden = false;
 	bool searchbar = true;
 	int icon_size = 32;

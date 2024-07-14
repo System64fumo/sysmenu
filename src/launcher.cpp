@@ -1,6 +1,6 @@
 #include "launcher.hpp"
 
-launcher::launcher(const config &config_main, const Glib::RefPtr<Gio::AppInfo> &app) : Gtk::Box(), app_info(app) {
+launcher::launcher(const config_menu &config_main, const Glib::RefPtr<Gio::AppInfo> &app) : Gtk::Box(), app_info(app) {
 	name = app_info->get_name();
 	long_name = app_info->get_display_name();
 	progr = app_info->get_executable();
