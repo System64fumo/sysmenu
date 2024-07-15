@@ -19,7 +19,7 @@ void load_libsysmenu() {
 	}
 
 	sysmenu_create_ptr = (sysmenu_create_func)dlsym(handle, "sysmenu_create");
-	sysmenu_handle_signal_ptr = (sysmenu_handle_signal_func)dlsym(handle, "sysmenu_handle_signal");
+	sysmenu_handle_signal_ptr = (sysmenu_handle_signal_func)dlsym(handle, "sysmenu_signal");
 
 	if (!sysmenu_create_ptr || !sysmenu_handle_signal_ptr) {
 		std::cerr << "Cannot load symbols: " << dlerror() << '\n';
