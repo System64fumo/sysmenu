@@ -60,6 +60,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 
 	// Initialize
+	set_name("sysmenu");
 	set_default_size(config_main.width, config_main.height);
 	set_hide_on_close(true);
 	if (!config_main.starthidden)
