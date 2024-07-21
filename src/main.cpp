@@ -91,8 +91,8 @@ int main(int argc, char* argv[]) {
 	}
 	#endif
 
-	#ifdef RUNTIME_CONFIG
 	// Read launch arguments
+	#ifdef CONFIG_RUNTIME
 	while (true) {
 		switch(getopt(argc, argv, "Ssi:dI:dm:dubn:dp:dW:dH:dM:dlD:Sfvh")) {
 			case 'S':
