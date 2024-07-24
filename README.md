@@ -46,12 +46,6 @@ You can send signals to show/hide the window.<br>
 ``pkill -12 sysmenu`` to hide.<br>
 ``pkill -34 sysmenu`` to toggle.<br>
 
-> [!WARNING]
-> There is currently an issue where if you toggle visibility too quickly,<br>
-> The program will crash with: ``Error 71  (Protocol error) dispatching to Wayland display.``<br>
-> This issue seems to have been mostly resolved on Hyprland, However your luck
-> with other compositors may vary, BE WARNED!
-
 # Theming
 sysmenu uses your gtk4 theme by default, However it can be also load custom css,<br>
 Just copy the included style.css file to ~/.config/sys64/menu/style.css<br>
