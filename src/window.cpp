@@ -7,6 +7,7 @@
 #include <gtk4-layer-shell.h>
 #include <thread>
 #include <iostream>
+#include <glibmm/main.h>
 
 sysmenu::sysmenu(const config_menu &cfg) {
 	config_main = cfg;
@@ -232,55 +233,58 @@ void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 }
 
 void sysmenu::handle_signal(const int &signum) {
-	switch (signum) {
-		case 10: // Showing window
-			gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
-			get_style_context()->add_class("visible");
-			if (config_main.dock_items != "") {
-				revealer_search.set_reveal_child(true);
-				revealer_dock.set_reveal_child(false);
-				box_layout.set_valign(Gtk::Align::FILL);
-				box_layout.set_size_request(-1, max_height);
-				gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
-			}
-			else
-				show();
-
-			if (config_main.searchbar)
-				entry_search.grab_focus();
-			break;
-		case 12: // Hiding window
-			gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
-			get_style_context()->remove_class("visible");
-			if (config_main.dock_items != "") {
-				revealer_search.set_reveal_child(false);
-				revealer_dock.set_reveal_child(true);
-				box_layout.set_valign(Gtk::Align::END);
-				box_layout.set_size_request(-1, -1);
-				gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
-			}
-			else
-				hide();
-
-			if (config_main.searchbar)
-				entry_search.set_text("");
-			break;
-		case 34: // Toggling window
-			if (config_main.dock_items != "") {
-				starting_height = box_layout.get_height();
-				if (box_layout.get_height() < max_height / 2)
-					handle_signal(10);
+	Glib::signal_idle().connect([this, signum](){
+		switch (signum) {
+			case 10: // Showing window
+				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
+				get_style_context()->add_class("visible");
+				if (config_main.dock_items != "") {
+					revealer_search.set_reveal_child(true);
+					revealer_dock.set_reveal_child(false);
+					box_layout.set_valign(Gtk::Align::FILL);
+					box_layout.set_size_request(-1, max_height);
+					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
+				}
 				else
-					handle_signal(12);
-			}
-			else {
-				if (is_visible())
-					handle_signal(12);
+					show();
+
+				if (config_main.searchbar)
+					entry_search.grab_focus();
+				break;
+			case 12: // Hiding window
+				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
+				get_style_context()->remove_class("visible");
+				if (config_main.dock_items != "") {
+					revealer_search.set_reveal_child(false);
+					revealer_dock.set_reveal_child(true);
+					box_layout.set_valign(Gtk::Align::END);
+					box_layout.set_size_request(-1, -1);
+					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
+				}
 				else
-					handle_signal(10);
-			}
-			break;
-	}
+					hide();
+
+				if (config_main.searchbar)
+					entry_search.set_text("");
+				break;
+			case 34: // Toggling window
+				if (config_main.dock_items != "") {
+					starting_height = box_layout.get_height();
+					if (box_layout.get_height() < max_height / 2)
+						handle_signal(10);
+					else
+						handle_signal(12);
+				}
+				else {
+					if (is_visible())
+						handle_signal(12);
+					else
+						handle_signal(10);
+				}
+				break;
+		}
+		return false;
+	});
 }
 
 void sysmenu::on_drag_start(const double &x, const double &y) {
