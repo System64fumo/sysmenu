@@ -158,10 +158,13 @@ bool sysmenu::on_escape_key_press(const guint &keyval, const guint &keycode, con
 	if (keyval == 65307) // Escape key
 		handle_signal(12);
 	else if (keyval == 65289) { // Tab
-			// TODO: Don't assume child 0 is the first child
-			auto children = flowbox_itembox.get_children();
-			auto widget = children[0];
-			widget->grab_focus();
+		auto children = flowbox_itembox.get_children();
+
+		if (selected_child == nullptr)
+			selected_child = dynamic_cast<Gtk::FlowBoxChild*>(children[0]);
+
+		flowbox_itembox.select_child(*selected_child);
+		selected_child->grab_focus();
 	}
 
 	return true;
@@ -170,6 +173,7 @@ bool sysmenu::on_escape_key_press(const guint &keyval, const guint &keycode, con
 void sysmenu::on_search_changed() {
 	matches = 0;
 	match = "";
+	selected_child = nullptr;
 	flowbox_itembox.invalidate_filter();
 }
 
@@ -189,9 +193,11 @@ bool sysmenu::on_filter(Gtk::FlowBoxChild *child) {
 	auto text = entry_search.get_text();
 
 	if (button->matches(text)) {
-		this->matches++;
-		if (matches == 1)
+		matches++;
+		if (matches == 1) {
+			selected_child = child;
 			match = button->app_info->get_executable();
+		}
 		return true;
 	}
 
@@ -215,6 +221,8 @@ void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 	// Load dock items
 	if (config_main.dock_items != "")
 		sysmenu_dock->load_items(app_list);
+
+	selected_child = nullptr;
 }
 
 void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
@@ -233,11 +241,12 @@ void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 }
 
 void sysmenu::handle_signal(const int &signum) {
-	Glib::signal_idle().connect([this, signum](){
+	Glib::signal_idle().connect([this, signum]() {
 		switch (signum) {
 			case 10: // Showing window
 				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
 				get_style_context()->add_class("visible");
+				flowbox_itembox.unselect_all();
 				if (config_main.dock_items != "") {
 					revealer_search.set_reveal_child(true);
 					revealer_dock.set_reveal_child(false);

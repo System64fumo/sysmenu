@@ -38,6 +38,7 @@ class sysmenu : public Gtk::Window {
 		Gtk::Revealer revealer_dock;
 		Gtk::Revealer revealer_search;
 		Gtk::FlowBox flowbox_itembox;
+		Gtk::FlowBoxChild *selected_child;
 		Gtk::ScrolledWindow scrolled_window;
 		Gtk::Box box_top;
 		Gtk::CenterBox centerbox_top;
