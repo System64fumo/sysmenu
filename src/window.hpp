@@ -52,6 +52,7 @@ class sysmenu : public Gtk::Window {
 
 		void app_info_changed(GAppInfoMonitor* gappinfomonitor);
 		void load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info);
+		void run_menu_item(const launcher &item);
 
 		void on_child_activated(Gtk::FlowBoxChild* child);
 		bool on_escape_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state);

@@ -200,6 +200,7 @@ bool sysmenu::on_escape_key_press(const guint &keyval, const guint &keycode, con
 }
 
 void sysmenu::on_search_changed() {
+	flowbox_recent.set_visible(entry_search.get_text() == "");
 	matches = 0;
 	match = "";
 	selected_child = nullptr;
@@ -208,29 +209,12 @@ void sysmenu::on_search_changed() {
 
 void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
 	launcher *button = dynamic_cast<launcher*>(child->get_child());
-	button->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
-	handle_signal(12);
-
-	// Could probably avoid having to check this if the click is coming from the recents list
-	auto it = std::find(app_list_history.begin(), app_list_history.end(), button->app_info);
-	if (it != app_list_history.end())
-		return;
-
-	if (app_list_history.size() >= 3) {
-		auto first_child = flowbox_recent.get_child_at_index(0);
-		flowbox_recent.remove(*first_child);
-		app_list_history.erase(app_list_history.begin());
-	}
-
-	launcher recent(config_main, button->app_info);
-	recent.set_size_request(-1, -1);
-	flowbox_recent.append(recent);
-	app_list_history.push_back(button->app_info);
+	run_menu_item(*button);
 }
 
 void sysmenu::on_search_done() {
-	g_spawn_command_line_async(std::string(match).c_str(), NULL);
-	handle_signal(12);
+	launcher *button = dynamic_cast<launcher*>(selected_child->get_child());
+	run_menu_item(*button);
 }
 
 bool sysmenu::on_filter(Gtk::FlowBoxChild *child) {
@@ -283,6 +267,27 @@ void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 
 	items.push_back(std::unique_ptr<launcher>(new launcher(config_main, app_info)));
 	flowbox_itembox.append(*items.back());
+}
+
+void sysmenu::run_menu_item(const launcher &item) {
+	item.app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
+	handle_signal(12);
+
+	// Could probably avoid having to check this if the click is coming from the recents list
+	auto it = std::find(app_list_history.begin(), app_list_history.end(), item.app_info);
+	if (it != app_list_history.end())
+		return;
+
+	if (app_list_history.size() >= 3) {
+		auto first_child = flowbox_recent.get_child_at_index(0);
+		flowbox_recent.remove(*first_child);
+		app_list_history.erase(app_list_history.begin());
+	}
+
+	launcher recent(config_main, item.app_info);
+	recent.set_size_request(-1, -1);
+	flowbox_recent.append(recent);
+	app_list_history.push_back(item.app_info);
 }
 
 void sysmenu::handle_signal(const int &signum) {
