@@ -21,10 +21,12 @@ class sysmenu : public Gtk::Window {
 		config_menu config_main;
 		int starting_height = 0;
 		int max_height;
+		int history_size = 3;
 
 		int matches = 0;
 		Glib::ustring match = "";
 		std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
+		std::vector<std::shared_ptr<Gio::AppInfo>> app_list_history;
 		std::vector<std::unique_ptr<launcher>> items;
 
 		GdkDisplay *display;
@@ -35,8 +37,10 @@ class sysmenu : public Gtk::Window {
 		dock *sysmenu_dock;
 		Gtk::Entry entry_search;
 		Gtk::Box box_layout;
+		Gtk::Box box_scrolled_contents;
 		Gtk::Revealer revealer_dock;
 		Gtk::Revealer revealer_search;
+		Gtk::FlowBox flowbox_recent;
 		Gtk::FlowBox flowbox_itembox;
 		Gtk::FlowBoxChild *selected_child;
 		Gtk::ScrolledWindow scrolled_window;

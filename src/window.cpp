@@ -8,6 +8,7 @@
 #include <thread>
 #include <iostream>
 #include <glibmm/main.h>
+#include <algorithm>
 
 sysmenu::sysmenu(const config_menu &cfg) {
 	config_main = cfg;
@@ -122,16 +123,39 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	else
 		add_controller(controller);
 
-	box_layout.get_style_context()->add_class("layoutbox");
+	box_scrolled_contents.get_style_context()->add_class("layoutbox");
+
+	// Recently launched
+	// TODO: Add history size config option
+	if (history_size > 0) {
+		if (config_main.items_per_row != 1) {
+			box_layout.append(flowbox_recent);
+			flowbox_recent.set_halign(Gtk::Align::CENTER);
+			flowbox_recent.set_orientation(Gtk::Orientation::HORIZONTAL);
+		}
+		else
+			box_scrolled_contents.append(flowbox_recent);
+
+		flowbox_recent.get_style_context()->add_class("flowbox_recent");
+		flowbox_recent.set_valign(Gtk::Align::START);
+		flowbox_recent.set_vexpand_set(true);
+		flowbox_recent.set_min_children_per_line(config_main.items_per_row);
+		flowbox_recent.set_max_children_per_line(config_main.items_per_row);
+		flowbox_recent.signal_child_activated().connect(sigc::mem_fun(*this, &sysmenu::on_child_activated));
+	}
+
 	box_layout.append(scrolled_window);
-	scrolled_window.get_style_context()->add_class("innerbox");
-	scrolled_window.set_child(flowbox_itembox);
+	scrolled_window.set_child(box_scrolled_contents);
+	box_scrolled_contents.get_style_context()->add_class("innerbox");
+	box_scrolled_contents.set_orientation(Gtk::Orientation::VERTICAL);
+	box_scrolled_contents.append(flowbox_itembox);
 
 	if (!config_main.scroll_bars)
 		scrolled_window.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
 
 	if (config_main.items_per_row != 1)
 		flowbox_itembox.set_halign(Gtk::Align::CENTER);
+
 	flowbox_itembox.set_valign(Gtk::Align::START);
 	flowbox_itembox.set_min_children_per_line(config_main.items_per_row);
 	flowbox_itembox.set_max_children_per_line(config_main.items_per_row);
@@ -181,6 +205,21 @@ void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
 	launcher *button = dynamic_cast<launcher*>(child->get_child());
 	button->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
 	handle_signal(12);
+
+	// Could probably avoid having to check this if the click is coming from the recents list
+	auto it = std::find(app_list_history.begin(), app_list_history.end(), button->app_info);
+	if (it != app_list_history.end())
+		return;
+
+	if (app_list_history.size() >= 3) {
+		auto first_child = flowbox_recent.get_child_at_index(0);
+		flowbox_recent.remove(*first_child);
+		app_list_history.erase(app_list_history.begin());
+	}
+
+	launcher recent(config_main, button->app_info);
+	flowbox_recent.append(recent);
+	app_list_history.push_back(button->app_info);
 }
 
 void sysmenu::on_search_done() {
