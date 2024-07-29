@@ -37,6 +37,7 @@ class sysmenu : public Gtk::Window {
 		dock *sysmenu_dock;
 		Gtk::Entry entry_search;
 		Gtk::Box box_layout;
+		Gtk::Box box_layout_inner;
 		Gtk::Box box_scrolled_contents;
 		Gtk::Revealer revealer_dock;
 		Gtk::Revealer revealer_search;
@@ -44,6 +45,7 @@ class sysmenu : public Gtk::Window {
 		Gtk::FlowBox flowbox_itembox;
 		Gtk::FlowBoxChild *selected_child;
 		Gtk::ScrolledWindow scrolled_window;
+		Gtk::ScrolledWindow scrolled_window_inner;
 		Gtk::Box box_top;
 		Gtk::CenterBox centerbox_top;
 		Glib::RefPtr<Gtk::GestureDrag> gesture_drag;
