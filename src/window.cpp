@@ -67,8 +67,14 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	set_hide_on_close(true);
 	if (!config_main.starthidden)
 		show();
+
 	box_layout.property_orientation().set_value(Gtk::Orientation::VERTICAL);
 	set_child(box_layout);
+	box_layout.append(scrolled_window_inner);
+	scrolled_window_inner.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
+	scrolled_window_inner.set_child(box_layout_inner);
+	box_layout_inner.set_orientation(Gtk::Orientation::VERTICAL);
+	box_layout_inner.get_style_context()->add_class("innerbox");
 
 	// Sadly there does not seem to be a way to detect what the default monitor is
 	// Gotta assume or ask the user for their monitor of choice
@@ -104,7 +110,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 			revealer_search.set_transition_duration(500);
 		}
 		else {
-			box_layout.append(centerbox_top);
+			box_layout.prepend(centerbox_top);
 		}
 
 		centerbox_top.get_style_context()->add_class("centerbox_top");
@@ -129,7 +135,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	// TODO: Add history size config option
 	if (history_size > 0) {
 		if (config_main.items_per_row != 1) {
-			box_layout.append(flowbox_recent);
+			box_layout_inner.append(flowbox_recent);
 			flowbox_recent.set_halign(Gtk::Align::CENTER);
 			flowbox_recent.set_orientation(Gtk::Orientation::HORIZONTAL);
 		}
@@ -144,9 +150,8 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		flowbox_recent.signal_child_activated().connect(sigc::mem_fun(*this, &sysmenu::on_child_activated));
 	}
 
-	box_layout.append(scrolled_window);
+	box_layout_inner.append(scrolled_window);
 	scrolled_window.set_child(box_scrolled_contents);
-	box_scrolled_contents.get_style_context()->add_class("innerbox");
 	box_scrolled_contents.set_orientation(Gtk::Orientation::VERTICAL);
 	box_scrolled_contents.append(flowbox_itembox);
 
@@ -218,6 +223,7 @@ void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
 	}
 
 	launcher recent(config_main, button->app_info);
+	recent.set_size_request(-1, -1);
 	flowbox_recent.append(recent);
 	app_list_history.push_back(button->app_info);
 }
