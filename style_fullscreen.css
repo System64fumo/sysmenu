@@ -2,23 +2,25 @@
 	background: transparent;
 }
 
-#sysmenu .searchbar {
+#sysmenu .entry_search {
 }
 
-#sysmenu .centerbox_top {
-	background: rgba(0, 0, 0, 0.5);
+#sysmenu .revealer_search {
+	background: alpha(@theme_base_color, 0.9);
 }
 
-#sysmenu .layoutbox {
+#sysmenu .box_layout {
 }
 
-#sysmenu .innerbox {
-	background: rgba(0, 0, 0, 0.5);
+#sysmenu .box_layout_inner {
+	background: alpha(@theme_base_color, 0.9);
 }
 
-/* Dock */
+#sysmenu .flowbox_recent {
+}
+
 #sysmenu .dock {
-	background: rgba(0, 0, 0, 0.5);
+	background: alpha(@theme_base_color, 0.5);
 	border: 1px solid @borders;
 	border-radius: 25px;
 	margin: 10px;
@@ -38,3 +40,4 @@
 #sysmenu .dock_item:nth-last-child(1) {
 	margin-right: 5px;
 }
+
