@@ -121,7 +121,9 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		entry_search.set_size_request(config_main.width - 20, -1);
 
 		entry_search.signal_changed().connect(sigc::mem_fun(*this, &sysmenu::on_search_changed));
-		entry_search.signal_activate().connect(sigc::mem_fun(*this, &sysmenu::on_search_done));
+		entry_search.signal_activate().connect([this]() {
+			run_menu_item(selected_child, false);
+		});
 		flowbox_itembox.set_sort_func(sigc::mem_fun(*this, &sysmenu::on_sort));
 		flowbox_itembox.set_filter_func(sigc::mem_fun(*this, &sysmenu::on_filter));
 		entry_search.grab_focus();
@@ -148,7 +150,9 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		flowbox_recent.set_vexpand_set(true);
 		flowbox_recent.set_min_children_per_line(config_main.items_per_row);
 		flowbox_recent.set_max_children_per_line(config_main.items_per_row);
-		flowbox_recent.signal_child_activated().connect(sigc::mem_fun(*this, &sysmenu::on_child_activated));
+		flowbox_recent.signal_child_activated().connect([this](Gtk::FlowBoxChild* child) {
+			run_menu_item(child, true);
+		});
 	}
 
 	box_layout_inner.append(scrolled_window);
@@ -166,7 +170,9 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	flowbox_itembox.set_min_children_per_line(config_main.items_per_row);
 	flowbox_itembox.set_max_children_per_line(config_main.items_per_row);
 	flowbox_itembox.set_vexpand(true);
-	flowbox_itembox.signal_child_activated().connect(sigc::mem_fun(*this, &sysmenu::on_child_activated));
+	flowbox_itembox.signal_child_activated().connect([this](Gtk::FlowBoxChild* child) {
+		run_menu_item(child, false);
+	});
 
 	// Load custom css
 	std::string home_dir = getenv("HOME");
@@ -190,16 +196,6 @@ void sysmenu::on_search_changed() {
 	match = "";
 	selected_child = nullptr;
 	flowbox_itembox.invalidate_filter();
-}
-
-void sysmenu::on_search_done() {
-	launcher *button = dynamic_cast<launcher*>(selected_child->get_child());
-	run_menu_item(*button);
-}
-
-void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
-	launcher *button = dynamic_cast<launcher*>(child->get_child());
-	run_menu_item(*button);
 }
 
 bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
@@ -270,12 +266,16 @@ void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 	flowbox_itembox.append(*items.back());
 }
 
-void sysmenu::run_menu_item(const launcher &item) {
-	item.app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
+void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
+	launcher *item = dynamic_cast<launcher*>(child->get_child());
+	item->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
 	handle_signal(12);
 
-	// Could probably avoid having to check this if the click is coming from the recents list
-	auto it = std::find(app_list_history.begin(), app_list_history.end(), item.app_info);
+	// Don't add the item again if the click came from the recent's list
+	if (recent)
+		return;
+
+	auto it = std::find(app_list_history.begin(), app_list_history.end(), item->app_info);
 	if (it != app_list_history.end())
 		return;
 
@@ -285,10 +285,10 @@ void sysmenu::run_menu_item(const launcher &item) {
 		app_list_history.erase(app_list_history.begin());
 	}
 
-	launcher recent(config_main, item.app_info);
-	recent.set_size_request(-1, -1);
-	flowbox_recent.append(recent);
-	app_list_history.push_back(item.app_info);
+	launcher *recent_item = new launcher(config_main, item->app_info);
+	recent_item->set_size_request(-1, -1);
+	flowbox_recent.append(*recent_item);
+	app_list_history.push_back(item->app_info);
 	flowbox_recent.set_visible(true);
 }
 
@@ -306,11 +306,10 @@ void sysmenu::handle_signal(const int &signum) {
 					box_layout.set_size_request(-1, max_height);
 					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
 				}
-				else
-					show();
-
+				show();
 				if (config_main.searchbar)
 					entry_search.grab_focus();
+
 				break;
 			case 12: // Hiding window
 				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
@@ -322,11 +321,12 @@ void sysmenu::handle_signal(const int &signum) {
 					box_layout.set_size_request(-1, -1);
 					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
 				}
-				else
-					hide();
-
+				hide();
 				if (config_main.searchbar)
 					entry_search.set_text("");
+				flowbox_recent.unselect_all();
+				flowbox_itembox.unselect_all();
+
 				break;
 			case 34: // Toggling window
 				if (config_main.dock_items != "") {
