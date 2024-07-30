@@ -47,20 +47,20 @@ class sysmenu : public Gtk::Window {
 		Gtk::ScrolledWindow scrolled_window;
 		Gtk::ScrolledWindow scrolled_window_inner;
 		Gtk::Box box_top;
-		Gtk::CenterBox centerbox_top;
 		Glib::RefPtr<Gtk::GestureDrag> gesture_drag;
+
+		void on_search_changed();
+		void on_search_done();
+
+		void on_child_activated(Gtk::FlowBoxChild* child);
+		bool on_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state);
+
+		bool on_filter(Gtk::FlowBoxChild* child);
+		bool on_sort(Gtk::FlowBoxChild*, Gtk::FlowBoxChild*);
 
 		void app_info_changed(GAppInfoMonitor* gappinfomonitor);
 		void load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info);
 		void run_menu_item(const launcher &item);
-
-		void on_child_activated(Gtk::FlowBoxChild* child);
-		bool on_escape_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state);
-
-		bool on_sort(Gtk::FlowBoxChild*, Gtk::FlowBoxChild*);
-		bool on_filter(Gtk::FlowBoxChild* child);
-		void on_search_changed();
-		void on_search_done();
 
 		void on_drag_start(const double &x, const double &y);
 		void on_drag_update(const double &x, const double &y);

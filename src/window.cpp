@@ -74,7 +74,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	scrolled_window_inner.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
 	scrolled_window_inner.set_child(box_layout_inner);
 	box_layout_inner.set_orientation(Gtk::Orientation::VERTICAL);
-	box_layout_inner.get_style_context()->add_class("innerbox");
+	box_layout_inner.get_style_context()->add_class("box_layout_inner");
 
 	// Sadly there does not seem to be a way to detect what the default monitor is
 	// Gotta assume or ask the user for their monitor of choice
@@ -98,23 +98,23 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	// Events 
 	auto controller = Gtk::EventControllerKey::create();
 	controller->signal_key_pressed().connect(
-	sigc::mem_fun(*this, &sysmenu::on_escape_key_press), true);
+		sigc::mem_fun(*this, &sysmenu::on_key_press), true);
 
 	if (config_main.searchbar) {
 		entry_search.add_controller(controller);
-		entry_search.get_style_context()->add_class("searchbar");
+		entry_search.get_style_context()->add_class("entry_search");
 		if (config_main.dock_items != "") {
 			box_top.append(revealer_search);
-			revealer_search.set_child(centerbox_top);
+			revealer_search.get_style_context()->add_class("revealer_search");
+			revealer_search.set_child(entry_search);
 			revealer_search.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
 			revealer_search.set_transition_duration(500);
 		}
 		else {
-			box_layout.prepend(centerbox_top);
+			box_layout.prepend(entry_search);
 		}
 
-		centerbox_top.get_style_context()->add_class("centerbox_top");
-		centerbox_top.set_center_widget(entry_search);
+		entry_search.set_halign(Gtk::Align::CENTER);
 		entry_search.set_icon_from_icon_name("search", Gtk::Entry::IconPosition::PRIMARY);
 		entry_search.set_placeholder_text("Search");
 		entry_search.set_margin(10);
@@ -129,7 +129,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	else
 		add_controller(controller);
 
-	box_scrolled_contents.get_style_context()->add_class("layoutbox");
+	box_layout.get_style_context()->add_class("box_layout");
 
 	// Recently launched
 	// TODO: Add history size config option
@@ -142,6 +142,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		else
 			box_scrolled_contents.append(flowbox_recent);
 
+		flowbox_recent.set_visible(false);
 		flowbox_recent.get_style_context()->add_class("flowbox_recent");
 		flowbox_recent.set_valign(Gtk::Align::START);
 		flowbox_recent.set_vexpand_set(true);
@@ -183,7 +184,25 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	thread_appinfo.detach();
 }
 
-bool sysmenu::on_escape_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
+void sysmenu::on_search_changed() {
+	flowbox_recent.set_visible(entry_search.get_text() == "" && app_list_history.size() > 0);
+	matches = 0;
+	match = "";
+	selected_child = nullptr;
+	flowbox_itembox.invalidate_filter();
+}
+
+void sysmenu::on_search_done() {
+	launcher *button = dynamic_cast<launcher*>(selected_child->get_child());
+	run_menu_item(*button);
+}
+
+void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
+	launcher *button = dynamic_cast<launcher*>(child->get_child());
+	run_menu_item(*button);
+}
+
+bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
 	if (keyval == 65307) // Escape key
 		handle_signal(12);
 	else if (keyval == 65289) { // Tab
@@ -197,24 +216,6 @@ bool sysmenu::on_escape_key_press(const guint &keyval, const guint &keycode, con
 	}
 
 	return true;
-}
-
-void sysmenu::on_search_changed() {
-	flowbox_recent.set_visible(entry_search.get_text() == "");
-	matches = 0;
-	match = "";
-	selected_child = nullptr;
-	flowbox_itembox.invalidate_filter();
-}
-
-void sysmenu::on_child_activated(Gtk::FlowBoxChild* child) {
-	launcher *button = dynamic_cast<launcher*>(child->get_child());
-	run_menu_item(*button);
-}
-
-void sysmenu::on_search_done() {
-	launcher *button = dynamic_cast<launcher*>(selected_child->get_child());
-	run_menu_item(*button);
 }
 
 bool sysmenu::on_filter(Gtk::FlowBoxChild *child) {
@@ -288,6 +289,7 @@ void sysmenu::run_menu_item(const launcher &item) {
 	recent.set_size_request(-1, -1);
 	flowbox_recent.append(recent);
 	app_list_history.push_back(item.app_info);
+	flowbox_recent.set_visible(true);
 }
 
 void sysmenu::handle_signal(const int &signum) {

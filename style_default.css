@@ -1,0 +1,38 @@
+#sysmenu {
+	background: transparent;
+	box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+	margin: 10px;
+	border-radius: 10px;
+}
+
+#sysmenu .entry_search {
+}
+
+#sysmenu .revealer_search {
+}
+
+#sysmenu .box_layout {
+	background: alpha(@theme_base_color, 0.9);
+	border: 1px solid @borders;
+	border-radius: 10px;
+}
+
+#sysmenu .box_layout_inner {
+	margin: 4px;
+}
+
+#sysmenu .flowbox_recent {
+	border-bottom: 1px solid @borders;
+	padding-bottom: 4px;
+}
+
+#sysmenu .dock {
+}
+#sysmenu .dock_item {
+}
+#sysmenu .dock_item:hover {
+}
+#sysmenu .dock_item:nth-child(1) {
+}
+#sysmenu .dock_item:nth-last-child(1) {
+}
