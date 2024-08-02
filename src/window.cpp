@@ -133,6 +133,11 @@ sysmenu::sysmenu(const config_menu &cfg) {
 
 	box_layout.get_style_context()->add_class("box_layout");
 
+	if (config_main.items_per_row != 1) {
+		flowbox_itembox.set_halign(Gtk::Align::CENTER);
+		history_size = config_main.items_per_row;
+	}
+
 	// Recently launched
 	// TODO: Add history size config option
 	if (history_size > 0) {
@@ -162,9 +167,6 @@ sysmenu::sysmenu(const config_menu &cfg) {
 
 	if (!config_main.scroll_bars)
 		scrolled_window.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
-
-	if (config_main.items_per_row != 1)
-		flowbox_itembox.set_halign(Gtk::Align::CENTER);
 
 	flowbox_itembox.set_valign(Gtk::Align::START);
 	flowbox_itembox.set_min_children_per_line(config_main.items_per_row);
@@ -279,7 +281,7 @@ void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 	if (it != app_list_history.end())
 		return;
 
-	if (app_list_history.size() >= 3) {
+	if (app_list_history.size() >= history_size) {
 		auto first_child = flowbox_recent.get_child_at_index(0);
 		flowbox_recent.remove(*first_child);
 		app_list_history.erase(app_list_history.begin());

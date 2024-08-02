@@ -21,7 +21,7 @@ class sysmenu : public Gtk::Window {
 		config_menu config_main;
 		int starting_height = 0;
 		int max_height;
-		int history_size = 3;
+		uint history_size = 3;
 
 		int matches = 0;
 		Glib::ustring match = "";
