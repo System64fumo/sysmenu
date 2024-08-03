@@ -5,9 +5,11 @@ SRCS = $(filter-out src/main.cpp, $(wildcard src/*.cpp))
 OBJS = $(SRCS:.cpp=.o)
 DESTDIR = $(HOME)/.local
 
-CXXFLAGS = -march=native -mtune=native -Os -s -Wall -flto=auto -fno-exceptions -fPIC
+CXXFLAGS += -Os -s -Wall -flto=auto -fno-exceptions -fPIC
+LDFLAGS += -Wl,-O1,--as-needed,-z,now,-z,pack-relative-relocs
+
 CXXFLAGS += $(shell pkg-config --cflags $(PKGS))
-LDFLAGS = $(shell pkg-config --libs $(PKGS))
+LDFLAGS += $(shell pkg-config --libs $(PKGS))
 
 all: $(EXEC) $(LIB)
 
@@ -23,13 +25,14 @@ $(EXEC): src/git_info.hpp src/main.cpp src/config_parser.o
 	$(CXX) -o $(EXEC) \
 	src/main.cpp \
 	src/config_parser.o \
-	$(LDFLAGS) \
-	$(CXXFLAGS)
+	$(CXXFLAGS) \
+	$(shell pkg-config --libs gtkmm-4.0 gtk4-layer-shell-0)
 
 $(LIB): $(OBJS)
 	$(CXX) -o $(LIB) \
 	$(OBJS) \
 	$(CXXFLAGS) \
+	$(LDFLAGS) \
 	-shared
 
 %.o: %.cpp
