@@ -323,7 +323,8 @@ void sysmenu::handle_signal(const int &signum) {
 					box_layout.set_size_request(-1, -1);
 					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
 				}
-				hide();
+				else
+					hide();
 				if (config_main.searchbar)
 					entry_search.set_text("");
 				flowbox_recent.unselect_all();
@@ -368,15 +369,30 @@ void sysmenu::on_drag_start(const double &x, const double &y) {
 }
 
 void sysmenu::on_drag_update(const double &x, const double &y) {
-	int height = box_layout.get_height();
+	bool margin_ignore = (-y < config_main.dock_icon_size / 2);
+	int height = starting_height - y;
 
-	height = starting_height - y;
+	// This mess right here clamps the height to 0 & max possible height
+	// It also adds a margin where you have to pull at least 50% of the dock's..
+	// height to trigger a pull.
+	if (starting_height < max_height) {
+		// Pulled from bottom
+		if (y > 0 || height >= max_height)
+			return;
+		else if (margin_ignore)
+			height = 0;
+	}
+	else {
+		// Pulled from top
+		if (y < 0 || height < config_main.dock_icon_size)
+			return;
+	}
 
 	box_layout.set_size_request(-1, height);
 
-	gtk_layer_set_layer(gobj(), (-y < 1) ? GTK_LAYER_SHELL_LAYER_OVERLAY : GTK_LAYER_SHELL_LAYER_BOTTOM);
-	revealer_dock.set_reveal_child((-y < 1));
-	revealer_search.set_reveal_child((-y > 1));
+	gtk_layer_set_layer(gobj(), margin_ignore ? GTK_LAYER_SHELL_LAYER_OVERLAY : GTK_LAYER_SHELL_LAYER_BOTTOM);
+	revealer_dock.set_reveal_child(margin_ignore);
+	revealer_search.set_reveal_child(!margin_ignore);
 }
 
 void sysmenu::on_drag_stop(const double &x, const double &y) {
