@@ -32,12 +32,12 @@ arguments:
   -b	Show scroll bars
   -n	Max name length
   -p	Items per row
+  -a	Anchors ("top right bottom left")
   -W	Set window width
   -H	Set window Height
   -l	Disable use of layer shell
   -v	Prints version info
   -D	Set dock items ("Terminal,FileManager,WebBrowser,ect..")
-  -f	Fullscreen
 ```
 
 # Signals

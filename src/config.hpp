@@ -16,10 +16,10 @@ struct config_menu {
 	bool scroll_bars = false;
 	ulong max_name_length = 30;
 	int items_per_row = 1;
+	std::string anchors = "";
 	int width = 400;
 	int height = 600;
 	int main_monitor = 0;
 	bool layer_shell = true;
-	bool fill_screen = false;
 	std::string dock_items = "";
 };

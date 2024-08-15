@@ -70,6 +70,10 @@ int main(int argc, char* argv[]) {
 		if (cfg_items_per_row != "empty")
 			config_main.items_per_row = std::stoi(cfg_items_per_row);
 
+		std::string cfg_anchors =  config.get_value("main", "anchors");
+		if (cfg_anchors != "empty")
+			config_main.anchors = cfg_anchors;
+
 		std::string cfg_width = config.get_value("main", "width");
 		if (cfg_width != "empty")
 			config_main.width = std::stoi(cfg_width);
@@ -86,15 +90,11 @@ int main(int argc, char* argv[]) {
 		if (cfg_layer_shell != "empty")
 			config_main.layer_shell = (cfg_layer_shell == "true");
 
-		std::string cfg_fullscreen =  config.get_value("main", "fullscreen");
-		if (cfg_fullscreen != "empty")
-			config_main.fill_screen = (cfg_fullscreen == "true");
-
 		std::string cfg_dock_items =  config.get_value("main", "dock-items");
 		if (cfg_dock_items != "empty" && !cfg_dock_items.empty()) {
 			config_main.dock_items = cfg_dock_items;
 			config_main.layer_shell = true;
-			config_main.fill_screen = true;
+			config_main.anchors = "top right bottom left";
 		}
 	}
 	#endif
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
 	// Read launch arguments
 	#ifdef CONFIG_RUNTIME
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:dI:dm:dubn:dp:dW:dH:dM:dlD:Sfvh")) {
+		switch(getopt(argc, argv, "Ssi:dI:dm:dubn:dp:da:SW:dH:dM:dlD:Svh")) {
 			case 'S':
 				config_main.starthidden=true;
 				continue;
@@ -139,6 +139,10 @@ int main(int argc, char* argv[]) {
 				config_main.items_per_row=std::stoi(optarg);
 				continue;
 
+			case 'a':
+				config_main.anchors=optarg;
+				continue;
+
 			case 'W':
 				config_main.width=std::stoi(optarg);
 				continue;
@@ -158,11 +162,7 @@ int main(int argc, char* argv[]) {
 			case 'D':
 				config_main.dock_items=optarg;
 				config_main.layer_shell=true;
-				config_main.fill_screen=true;
-				continue;
-
-			case 'f':
-				config_main.fill_screen=true;
+				config_main.anchors = "top right bottom left";
 				continue;
 
 			case 'v':
@@ -184,12 +184,12 @@ int main(int argc, char* argv[]) {
 				std::cout << "  -b	Show scroll bars" << std::endl;
 				std::cout << "  -n	Max name length" << std::endl;
 				std::cout << "  -p	Items per row" << std::endl;
+				std::cout << "  -a	Set anchors" << std::endl;
 				std::cout << "  -W	Set window width" << std::endl;
 				std::cout << "  -H	Set window Height" << std::endl;
 				std::cout << "  -M	Set primary monitor" << std::endl;
 				std::cout << "  -l	Disable use of layer shell" << std::endl;
 				std::cout << "  -D	Set dock items" << std::endl;
-				std::cout << "  -f	Fullscreen" << std::endl;
 				std::cout << "  -v	Prints version info" << std::endl;
 				std::cout << "  -h	Show this help message" << std::endl;
 				return 0;

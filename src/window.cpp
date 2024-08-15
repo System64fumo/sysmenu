@@ -18,13 +18,18 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		gtk_layer_set_keyboard_mode(gobj(), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
 		gtk_layer_set_namespace(gobj(), "sysmenu");
 
-		if (config_main.fill_screen) {
-			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_LEFT, true);
-			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_RIGHT, true);
-			if (config_main.dock_items == "")
-				gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
-			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_BOTTOM, true);
-		}
+		bool edge_top = (config_main.anchors.find("top") != std::string::npos);
+		bool edge_right = (config_main.anchors.find("right") != std::string::npos);
+		bool edge_bottom = (config_main.anchors.find("bottom") != std::string::npos);
+		bool edge_left = (config_main.anchors.find("left") != std::string::npos);
+
+		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, edge_top);
+		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_RIGHT, edge_right);
+		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_BOTTOM, edge_bottom);
+		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_LEFT, edge_left);
+
+		if (config_main.dock_items != "")
+			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
 	}
 
 	// Dock
