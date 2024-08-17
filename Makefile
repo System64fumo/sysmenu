@@ -1,9 +1,13 @@
-EXEC = sysmenu
-LIB = libsysmenu.so
+BINS = sysmenu
+LIBS = libsysmenu.so
 PKGS = gtkmm-4.0 gtk4-layer-shell-0
 SRCS = $(filter-out src/main.cpp, $(wildcard src/*.cpp))
 OBJS = $(SRCS:.cpp=.o)
-DESTDIR = $(HOME)/.local
+
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+LIBDIR ?= $(PREFIX)/lib
+DATADIR ?= $(PREFIX)/share
 
 CXXFLAGS += -Oz -s -Wall -flto -fno-exceptions -fPIC
 LDFLAGS += -Wl,--as-needed,-z,now,-z,pack-relative-relocs
@@ -19,28 +23,28 @@ define progress
 	@printf "[$(JOBS_DONE)/$(shell echo $(JOB_COUNT) | wc -w)] %s %s\n" $(1) $(2)
 endef
 
-all: $(EXEC) $(LIB)
+all: $(BINS) $(LIBS)
 
-install: $(EXEC)
-	mkdir -p $(DESTDIR)/bin $(DESTDIR)/lib
-	install $(EXEC) $(DESTDIR)/bin/$(EXEC)
-	install $(LIB) $(DESTDIR)/lib/$(LIB)
+install: $(all)
+	@echo "Installing..."
+	@install -D -t $(DESTDIR)$(BINDIR) $(BINS)
+	@install -D -t $(DESTDIR)$(LIBDIR) $(LIBS)
 
 clean:
 	@echo "Cleaning up"
-	@rm $(EXEC) $(LIB) $(SRCS:.cpp=.o) src/git_info.hpp
+	@rm $(BINS) $(LIBS) $(SRCS:.cpp=.o) src/git_info.hpp
 
-$(EXEC): src/git_info.hpp src/main.cpp src/config_parser.o
+$(BINS): src/git_info.hpp src/main.cpp src/config_parser.o
 	$(call progress, Linking $@)
-	@$(CXX) -o $(EXEC) \
+	@$(CXX) -o $(BINS) \
 	src/main.cpp \
 	src/config_parser.o \
 	$(CXXFLAGS) \
 	$(shell pkg-config --libs gtkmm-4.0 gtk4-layer-shell-0)
 
-$(LIB): $(OBJS)
+$(LIBS): $(OBJS)
 	$(call progress, Linking $@)
-	@$(CXX) -o $(LIB) \
+	@$(CXX) -o $(LIBS) \
 	$(OBJS) \
 	$(CXXFLAGS) \
 	$(LDFLAGS) \
