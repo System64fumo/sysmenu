@@ -64,7 +64,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		box_layout.set_valign(Gtk::Align::END);
 	}
 	else
-		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
+		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
 
 	// Initialize
 	set_name("sysmenu");
@@ -303,7 +303,7 @@ void sysmenu::handle_signal(const int &signum) {
 	Glib::signal_idle().connect([this, signum]() {
 		switch (signum) {
 			case 10: // Showing window
-				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_OVERLAY);
+				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
 				get_style_context()->add_class("visible");
 				flowbox_itembox.unselect_all();
 				if (config_main.dock_items != "") {
@@ -395,7 +395,7 @@ void sysmenu::on_drag_update(const double &x, const double &y) {
 
 	box_layout.set_size_request(-1, height);
 
-	gtk_layer_set_layer(gobj(), margin_ignore ? GTK_LAYER_SHELL_LAYER_OVERLAY : GTK_LAYER_SHELL_LAYER_BOTTOM);
+	gtk_layer_set_layer(gobj(), margin_ignore ? GTK_LAYER_SHELL_LAYER_TOP : GTK_LAYER_SHELL_LAYER_BOTTOM);
 	revealer_dock.set_reveal_child(margin_ignore);
 	revealer_search.set_reveal_child(!margin_ignore);
 }
