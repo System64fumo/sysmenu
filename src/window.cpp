@@ -131,7 +131,9 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		});
 		flowbox_itembox.set_sort_func(sigc::mem_fun(*this, &sysmenu::on_sort));
 		flowbox_itembox.set_filter_func(sigc::mem_fun(*this, &sysmenu::on_filter));
-		entry_search.grab_focus();
+
+		if (config_main.dock_items == "")
+			entry_search.grab_focus();
 	}
 	else
 		add_controller(controller);
@@ -314,7 +316,7 @@ void sysmenu::handle_signal(const int &signum) {
 					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
 				}
 				show();
-				if (config_main.searchbar)
+				if (config_main.searchbar && config_main.dock_items == "")
 					entry_search.grab_focus();
 
 				break;
