@@ -29,6 +29,7 @@ install: $(all)
 	@echo "Installing..."
 	@install -D -t $(DESTDIR)$(BINDIR) $(BINS)
 	@install -D -t $(DESTDIR)$(LIBDIR) $(LIBS)
+	@install -D -t $(DESTDIR)$(DATADIR)/sys64/menu config.conf style.css style_fullscreen.css
 
 clean:
 	@echo "Cleaning up"
