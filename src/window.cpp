@@ -7,6 +7,7 @@
 #include <gtk4-layer-shell.h>
 #include <thread>
 #include <iostream>
+#include <filesystem>
 #include <glibmm/main.h>
 #include <algorithm>
 
@@ -184,9 +185,15 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	});
 
 	// Load custom css
-	std::string home_dir = getenv("HOME");
-	std::string css_path = home_dir + "/.config/sys64/menu/style.css";
-	css_loader loader(css_path, this);
+	std::string style_path;
+	if (std::filesystem::exists(std::string(getenv("HOME")) + "/.config/sys64/menu/style.css"))
+		style_path = std::string(getenv("HOME")) + "/.config/sys64/menu/style.css";
+	else if (std::filesystem::exists("/usr/share/sys64/menu/style.css"))
+		style_path = "/usr/share/sys64/menu/style.css";
+	else
+		style_path = "/usr/local/share/sys64/menu/style.css";
+
+	css_loader loader(style_path, this);
 
 	// Load applications
 	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
