@@ -128,7 +128,8 @@ sysmenu::sysmenu(const config_menu &cfg) {
 
 		entry_search.signal_changed().connect(sigc::mem_fun(*this, &sysmenu::on_search_changed));
 		entry_search.signal_activate().connect([this]() {
-			run_menu_item(selected_child, false);
+			if (selected_child)
+				run_menu_item(selected_child, false);
 		});
 		flowbox_itembox.set_sort_func(sigc::mem_fun(*this, &sysmenu::on_sort));
 		flowbox_itembox.set_filter_func(sigc::mem_fun(*this, &sysmenu::on_filter));
