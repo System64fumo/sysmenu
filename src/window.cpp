@@ -79,6 +79,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	box_layout.append(scrolled_window_inner);
 	scrolled_window_inner.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
 	scrolled_window_inner.set_child(box_layout_inner);
+	scrolled_window_inner.set_kinetic_scrolling(false);
 	box_layout_inner.set_orientation(Gtk::Orientation::VERTICAL);
 	box_layout_inner.get_style_context()->add_class("box_layout_inner");
 
