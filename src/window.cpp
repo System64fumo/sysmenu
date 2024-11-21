@@ -257,6 +257,7 @@ bool sysmenu::on_sort(Gtk::FlowBoxChild* a, Gtk::FlowBoxChild* b) {
 void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 	app_list = Gio::AppInfo::get_all();
 	flowbox_itembox.remove_all();
+	sysmenu_dock->remove_all();
 
 	// Load applications
 	for (auto app : app_list)

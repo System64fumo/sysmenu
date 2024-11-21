@@ -22,6 +22,7 @@ dock::dock(const config_menu &cfg) {
 }
 
 void dock::load_items(const std::vector<std::shared_ptr<Gio::AppInfo>> &items) {
+	dock_existing_items.clear();
 	for (const auto& app_info : items) {
 		std::string name = to_lowercase(app_info->get_name());
 
