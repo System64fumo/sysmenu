@@ -125,7 +125,7 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 		}
 
 		entry_search.set_halign(Gtk::Align::CENTER);
-		entry_search.set_icon_from_icon_name("search", Gtk::Entry::IconPosition::PRIMARY);
+		entry_search.set_icon_from_icon_name("system-search-symbolic", Gtk::Entry::IconPosition::PRIMARY);
 		entry_search.set_placeholder_text("Search");
 		entry_search.set_margin(10);
 		entry_search.set_size_request(std::stoi(config_main["main"]["width"]) - 20, -1);
