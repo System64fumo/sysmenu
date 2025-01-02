@@ -71,8 +71,12 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	set_name("sysmenu");
 	set_default_size(config_main.width, config_main.height);
 	set_hide_on_close(true);
-	if (!config_main.starthidden)
+	if (!config_main.starthidden) {
 		show();
+		Glib::signal_timeout().connect_once([&]() {
+			get_style_context()->add_class("visible");
+		}, 100);
+	}
 
 	box_layout.property_orientation().set_value(Gtk::Orientation::VERTICAL);
 	set_child(box_layout);
@@ -317,8 +321,8 @@ void sysmenu::handle_signal(const int &signum) {
 	Glib::signal_idle().connect([this, signum]() {
 		switch (signum) {
 			case 10: // Showing window
-				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
 				get_style_context()->add_class("visible");
+				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
 				flowbox_itembox.unselect_all();
 				if (config_main.dock_items != "") {
 					revealer_search.set_reveal_child(true);
@@ -333,7 +337,6 @@ void sysmenu::handle_signal(const int &signum) {
 
 				break;
 			case 12: // Hiding window
-				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 				get_style_context()->remove_class("visible");
 				if (config_main.dock_items != "") {
 					revealer_search.set_reveal_child(false);
@@ -341,9 +344,14 @@ void sysmenu::handle_signal(const int &signum) {
 					box_layout.set_valign(Gtk::Align::END);
 					box_layout.set_size_request(-1, -1);
 					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
+					gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 				}
-				else
-					hide();
+				else {
+					Glib::signal_timeout().connect_once([&]() {
+						hide();
+						gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
+					}, 250);
+				}
 				if (config_main.searchbar)
 					entry_search.set_text("");
 				flowbox_recent.unselect_all();
