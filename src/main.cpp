@@ -33,78 +33,40 @@ int main(int argc, char* argv[]) {
 	// Load the config
 	#ifdef CONFIG_FILE
 	std::string config_path;
-	if (std::filesystem::exists(std::string(getenv("HOME")) + "/.config/sys64/menu/config.conf"))
-		config_path = std::string(getenv("HOME")) + "/.config/sys64/menu/config.conf";
-	else if (std::filesystem::exists("/usr/share/sys64/menu/config.conf"))
+	std::map<std::string, std::map<std::string, std::string>> config;
+	std::map<std::string, std::map<std::string, std::string>> config_usr;
+
+	bool cfg_sys = std::filesystem::exists("/usr/share/sys64/menu/config.conf");
+	bool cfg_sys_local = std::filesystem::exists("/usr/local/share/sys64/menu/config.conf");
+	bool cfg_usr = std::filesystem::exists(std::string(getenv("HOME")) + "/.config/sys64/menu/config.conf");
+
+	// Load default config
+	if (cfg_sys)
 		config_path = "/usr/share/sys64/menu/config.conf";
-	else
+	else if (cfg_sys_local)
 		config_path = "/usr/local/share/sys64/menu/config.conf";
-	
-	config_parser config(config_path);
+	else
+		std::fprintf(stderr, "No default config found, Things will get funky!\n");
 
-	if (config.available) {
-		std::string cfg_start_hidden = config.get_value("main", "start-hidden");
-		if (cfg_start_hidden != "empty")
-			config_main.starthidden = (cfg_start_hidden == "true");
+	config = config_parser(config_path).data;
 
-		std::string cfg_searchbar = config.get_value("main", "searchbar");
-		if (cfg_searchbar != "empty")
-			config_main.searchbar = (cfg_searchbar == "true");
+	// Load user config
+	if (cfg_usr)
+		config_path = std::string(getenv("HOME")) + "/.config/sys64/menu/config.conf";
+	else
+		std::fprintf(stderr, "No user config found\n");
 
-		std::string cfg_icon_size = config.get_value("main", "icon-size");
-		if (cfg_icon_size != "empty")
-			config_main.icon_size = std::stoi(cfg_icon_size);
+	config_usr = config_parser(config_path).data;
 
-		std::string cfg_dock_icon_size = config.get_value("main", "dock-icon-size");
-		if (cfg_dock_icon_size != "empty")
-			config_main.dock_icon_size = std::stoi(cfg_dock_icon_size);
+	// Merge configs
+	for (const auto& [key, nested_map] : config_usr)
+		for (const auto& [inner_key, inner_value] : nested_map)
+			config[key][inner_key] = inner_value;
 
-		std::string cfg_app_margins = config.get_value("main", "app-margins");
-		if (cfg_app_margins != "empty")
-			config_main.app_margin = std::stoi(cfg_app_margins);
-
-		std::string cfg_name_under_icon = config.get_value("main", "name-under-icon");
-		if (cfg_name_under_icon != "empty")
-			config_main.name_under_icon = (cfg_name_under_icon == "true");
-
-		std::string cfg_scroll_bars = config.get_value("main", "scroll-bars");
-		if (cfg_scroll_bars != "empty")
-			config_main.scroll_bars = (cfg_scroll_bars == "true");
-
-		std::string cfg_name_length = config.get_value("main", "name-length");
-		if (cfg_name_length != "empty")
-			config_main.max_name_length = std::stoi(cfg_name_length);
-
-		std::string cfg_items_per_row = config.get_value("main", "items-per-row");
-		if (cfg_items_per_row != "empty")
-			config_main.items_per_row = std::stoi(cfg_items_per_row);
-
-		std::string cfg_anchors =  config.get_value("main", "anchors");
-		if (cfg_anchors != "empty")
-			config_main.anchors = cfg_anchors;
-
-		std::string cfg_width = config.get_value("main", "width");
-		if (cfg_width != "empty")
-			config_main.width = std::stoi(cfg_width);
-
-		std::string cfg_height =  config.get_value("main", "height");
-		if (cfg_height != "empty")
-			config_main.height=std::stoi(cfg_height);
-
-		std::string cfg_monitor =  config.get_value("main", "monitor");
-		if (cfg_monitor != "empty")
-			config_main.main_monitor=std::stoi(cfg_monitor);
-
-		std::string cfg_layer_shell =  config.get_value("main", "layer-shell");
-		if (cfg_layer_shell != "empty")
-			config_main.layer_shell = (cfg_layer_shell == "true");
-
-		std::string cfg_dock_items =  config.get_value("main", "dock-items");
-		if (cfg_dock_items != "empty" && !cfg_dock_items.empty()) {
-			config_main.dock_items = cfg_dock_items;
-			config_main.layer_shell = true;
-			config_main.anchors = "top right bottom left";
-		}
+	// Sanity check
+	if (!(cfg_sys || cfg_sys_local || cfg_usr)) {
+		std::fprintf(stderr, "No config available, Something ain't right here.");
+		return 1;
 	}
 	#endif
 
@@ -113,65 +75,65 @@ int main(int argc, char* argv[]) {
 	while (true) {
 		switch(getopt(argc, argv, "Ssi:dI:dm:dubn:dp:da:SW:dH:dM:dlD:Svh")) {
 			case 'S':
-				config_main.starthidden=true;
+				config["main"]["starthidden"] = "true";
 				continue;
 
 			case 's':
-				config_main.searchbar=false;
+				config["main"]["searchbar"] = "false";
 				continue;
 
 			case 'i':
-				config_main.icon_size=std::stoi(optarg);
+				config["main"]["icon-size"] = optarg;
 				continue;
 
 			case 'I':
-				config_main.dock_icon_size=std::stoi(optarg);
+				config["main"]["dock-icon-size"] = optarg;
 				continue;
 
 			case 'm':
-				config_main.app_margin=std::stoi(optarg);
+				config["main"]["app-margin"] = optarg;
 				continue;
 
 			case 'u':
-				config_main.name_under_icon=true;
+				config["main"]["name-under-icon"] = "true";
 				continue;
 
 			case 'b':
-				config_main.scroll_bars=true;
+				config["main"]["scroll-bars"] = "true";
 				continue;
 
 			case 'n':
-				config_main.max_name_length=std::stoi(optarg);
+				config["main"]["name-length"] = optarg;
 				continue;
 
 			case 'p':
-				config_main.items_per_row=std::stoi(optarg);
+				config["main"]["items-per-row"] = optarg;
 				continue;
 
 			case 'a':
-				config_main.anchors=optarg;
+				config["main"]["anchors"] = optarg;
 				continue;
 
 			case 'W':
-				config_main.width=std::stoi(optarg);
+				config["main"]["width"] = optarg;
 				continue;
 
 			case 'H':
-				config_main.height=std::stoi(optarg);
+				config["main"]["height"] = optarg;
 				continue;
 
 			case 'M':
-				config_main.main_monitor=std::stoi(optarg);
+				config["main"]["monitor"] = optarg;
 				continue;
 
 			case 'l':
-				config_main.layer_shell=false;
+				config["main"]["layer-shell"] = "false";
 				continue;
 
 			case 'D':
-				config_main.dock_items=optarg;
-				config_main.layer_shell=true;
-				config_main.anchors = "top right bottom left";
+				config["main"]["dock-items"] = optarg;
+				config["main"]["layer-shell"] = "true";
+				config["main"]["anchors"] = "top right bottom left";
 				continue;
 
 			case 'v':
@@ -215,7 +177,7 @@ int main(int argc, char* argv[]) {
 	app->hold();
 
 	load_libsysmenu();
-	win = sysmenu_create_ptr(config_main);
+	win = sysmenu_create_ptr(config);
 
 	// Catch signals
 	signal(SIGUSR1, handle_signal);
