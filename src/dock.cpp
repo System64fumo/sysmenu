@@ -1,6 +1,6 @@
 #include "dock.hpp"
 
-dock::dock(const config_menu &cfg) {
+dock::dock(const std::map<std::string, std::map<std::string, std::string>>& cfg) {
 	config_main = cfg;
 	get_style_context()->add_class("dock");
 	set_halign(Gtk::Align::CENTER);
@@ -10,11 +10,11 @@ dock::dock(const config_menu &cfg) {
 	signal_child_activated().connect(sigc::mem_fun(*this, &dock::on_child_activated));
 
 	// Make all items lowercase for easier detection
-	config_main.dock_items = to_lowercase(config_main.dock_items);
+	config_main["main"]["dock-items"] = to_lowercase(config_main["main"]["dock-items"]);
 
 	// Funky sorting
 	size_t index = 0;
-	std::stringstream ss(config_main.dock_items);
+	std::stringstream ss(config_main["main"]["dock-items"]);
 	std::string item;
 	while (std::getline(ss, item, ',')) {
 		order_map[item] = index++;
@@ -29,14 +29,14 @@ void dock::load_items(const std::vector<std::shared_ptr<Gio::AppInfo>> &items) {
 		if (!app_info->should_show() || !app_info->get_icon())
 			continue;
 
-		if (config_main.dock_items.find(name) == std::string::npos)
+		if (config_main["main"]["dock-items"].find(name) == std::string::npos)
 			continue;
 
-		if (dock_existing_items.find(name) != std::string::npos)
+		if (config_main["main"]["dock-items"].find(name) != std::string::npos)
 			continue;
 
 		dock_existing_items = dock_existing_items + name;
-		auto item = Gtk::make_managed<dock_item>(app_info, config_main.dock_icon_size);
+		auto item = Gtk::make_managed<dock_item>(app_info, std::stoi(config_main["main"]["dock-icon-size"]));
 		append(*item);
 	}
 }

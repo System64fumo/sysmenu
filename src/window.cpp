@@ -11,30 +11,29 @@
 #include <glibmm/main.h>
 #include <algorithm>
 
-sysmenu::sysmenu(const config_menu &cfg) {
-	config_main = cfg;
+sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>& cfg) : config_main(cfg) {
 
-	if (config_main.layer_shell) {
+	if (config_main["main"]["layer-shell"] == "true") {
 		gtk_layer_init_for_window(gobj());
 		gtk_layer_set_keyboard_mode(gobj(), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
 		gtk_layer_set_namespace(gobj(), "sysmenu");
 
-		bool edge_top = (config_main.anchors.find("top") != std::string::npos);
-		bool edge_right = (config_main.anchors.find("right") != std::string::npos);
-		bool edge_bottom = (config_main.anchors.find("bottom") != std::string::npos);
-		bool edge_left = (config_main.anchors.find("left") != std::string::npos);
+		bool edge_top = (config_main["main"]["anchors"].find("top") != std::string::npos);
+		bool edge_right = (config_main["main"]["anchors"].find("right") != std::string::npos);
+		bool edge_bottom = (config_main["main"]["anchors"].find("bottom") != std::string::npos);
+		bool edge_left = (config_main["main"]["anchors"].find("left") != std::string::npos);
 
 		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, edge_top);
 		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_RIGHT, edge_right);
 		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_BOTTOM, edge_bottom);
 		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_LEFT, edge_left);
 
-		if (config_main.dock_items != "")
+		if (config_main["main"]["dock-items"] != "")
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
 	}
 
 	// Dock
-	if (config_main.dock_items != "") {
+	if (config_main["main"]["dock-items"] != "") {
 		sysmenu_dock = Gtk::make_managed<dock>(config_main);
 		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 		// TODO: Dragging causes the inner scrollbox to resize, This is bad as
@@ -61,7 +60,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		box_top.add_controller(gesture_drag);
 
 		// Set window height to the dock's height
-		config_main.height = 30;
+		config_main["main"]["height"] = "30";
 		box_layout.set_valign(Gtk::Align::END);
 	}
 	else
@@ -69,9 +68,9 @@ sysmenu::sysmenu(const config_menu &cfg) {
 
 	// Initialize
 	set_name("sysmenu");
-	set_default_size(config_main.width, config_main.height);
+	set_default_size(std::stoi(config_main["main"]["width"]), std::stoi(config_main["main"]["height"]));
 	set_hide_on_close(true);
-	if (!config_main.starthidden) {
+	if (config_main["main"]["start-hidden"] != "true") {
 		show();
 		Glib::signal_timeout().connect_once([&]() {
 			get_style_context()->add_class("visible");
@@ -92,29 +91,29 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	display = gdk_display_get_default();
 	monitors = gdk_display_get_monitors(display);
 	monitorCount = g_list_model_get_n_items(monitors);
-	monitor = GDK_MONITOR(g_list_model_get_item(monitors, config_main.main_monitor));
+	monitor = GDK_MONITOR(g_list_model_get_item(monitors, std::stoi(config_main["main"]["monitor"])));
 
 	GdkRectangle geometry;
 	gdk_monitor_get_geometry(monitor, &geometry);
 	max_height = geometry.height;
 
 	// Keep the values in check
-	if (config_main.main_monitor < 0)
-		config_main.main_monitor = 0;
-	else if (config_main.main_monitor >= monitorCount)
-		config_main.main_monitor = monitorCount - 1;
-	else if (config_main.layer_shell)
-		gtk_layer_set_monitor(gobj(), GDK_MONITOR(g_list_model_get_item(monitors, config_main.main_monitor)));
+	if (std::stoi(config_main["main"]["monitor"]) < 0)
+		config_main["main"]["monitor"] = "0";
+	else if (std::stoi(config_main["main"]["monitor"]) >= monitorCount)
+		config_main["main"]["monitor"] = std::to_string(monitorCount - 1);
+	else if (config_main["main"]["layer-shell"] == "true")
+		gtk_layer_set_monitor(gobj(), GDK_MONITOR(g_list_model_get_item(monitors, std::stoi(config_main["main"]["monitor"]))));
 
-	// Events 
+	// Events
 	auto controller = Gtk::EventControllerKey::create();
 	controller->signal_key_pressed().connect(
 		sigc::mem_fun(*this, &sysmenu::on_key_press), true);
 
-	if (config_main.searchbar) {
+	if (config_main["main"]["searchbar"] == "true") {
 		entry_search.add_controller(controller);
 		entry_search.get_style_context()->add_class("entry_search");
-		if (config_main.dock_items != "") {
+		if (config_main["main"]["dock-items"] != "") {
 			box_top.append(revealer_search);
 			revealer_search.get_style_context()->add_class("revealer_search");
 			revealer_search.set_child(entry_search);
@@ -129,7 +128,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		entry_search.set_icon_from_icon_name("search", Gtk::Entry::IconPosition::PRIMARY);
 		entry_search.set_placeholder_text("Search");
 		entry_search.set_margin(10);
-		entry_search.set_size_request(config_main.width - 20, -1);
+		entry_search.set_size_request(std::stoi(config_main["main"]["width"]) - 20, -1);
 
 		entry_search.signal_changed().connect(sigc::mem_fun(*this, &sysmenu::on_search_changed));
 		entry_search.signal_activate().connect([this]() {
@@ -139,7 +138,7 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		flowbox_itembox.set_sort_func(sigc::mem_fun(*this, &sysmenu::on_sort));
 		flowbox_itembox.set_filter_func(sigc::mem_fun(*this, &sysmenu::on_filter));
 
-		if (config_main.dock_items == "")
+		if (config_main["main"]["dock-items"] == "")
 			entry_search.grab_focus();
 	}
 	else
@@ -147,15 +146,15 @@ sysmenu::sysmenu(const config_menu &cfg) {
 
 	box_layout.get_style_context()->add_class("box_layout");
 
-	if (config_main.items_per_row != 1) {
+	if (std::stoi(config_main["main"]["items-per-row"]) != 1) {
 		flowbox_itembox.set_halign(Gtk::Align::CENTER);
-		history_size = config_main.items_per_row;
+		history_size = std::stoi(config_main["main"]["items-per-row"]);
 	}
 
 	// Recently launched
 	// TODO: Add history size config option
 	if (history_size > 0) {
-		if (config_main.items_per_row != 1) {
+		if (std::stoi(config_main["main"]["items-per-row"]) != 1) {
 			box_layout_inner.append(flowbox_recent);
 			flowbox_recent.set_halign(Gtk::Align::CENTER);
 			flowbox_recent.set_orientation(Gtk::Orientation::HORIZONTAL);
@@ -167,8 +166,8 @@ sysmenu::sysmenu(const config_menu &cfg) {
 		flowbox_recent.get_style_context()->add_class("flowbox_recent");
 		flowbox_recent.set_valign(Gtk::Align::START);
 		flowbox_recent.set_vexpand_set(true);
-		flowbox_recent.set_min_children_per_line(config_main.items_per_row);
-		flowbox_recent.set_max_children_per_line(config_main.items_per_row);
+		flowbox_recent.set_min_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
+		flowbox_recent.set_max_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
 		flowbox_recent.signal_child_activated().connect([this](Gtk::FlowBoxChild* child) {
 			run_menu_item(child, true);
 		});
@@ -179,12 +178,12 @@ sysmenu::sysmenu(const config_menu &cfg) {
 	box_scrolled_contents.set_orientation(Gtk::Orientation::VERTICAL);
 	box_scrolled_contents.append(flowbox_itembox);
 
-	if (!config_main.scroll_bars)
+	if (config_main["main"]["searchbar"] != "true")
 		scrolled_window.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
 
 	flowbox_itembox.set_valign(Gtk::Align::START);
-	flowbox_itembox.set_min_children_per_line(config_main.items_per_row);
-	flowbox_itembox.set_max_children_per_line(config_main.items_per_row);
+	flowbox_itembox.set_min_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
+	flowbox_itembox.set_max_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
 	flowbox_itembox.set_vexpand(true);
 	flowbox_itembox.signal_child_activated().connect([this](Gtk::FlowBoxChild* child) {
 		run_menu_item(child, false);
@@ -262,7 +261,7 @@ void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 	app_list = Gio::AppInfo::get_all();
 	flowbox_itembox.remove_all();
 
-	if (config_main.dock_items != "")
+	if (config_main["main"]["dock-items"] != "")
 		sysmenu_dock->remove_all();
 
 	// Load applications
@@ -270,7 +269,7 @@ void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 		load_menu_item(app);
 
 	// Load dock items
-	if (config_main.dock_items != "")
+	if (config_main["main"]["dock-items"] != "")
 		sysmenu_dock->load_items(app_list);
 
 	selected_child = nullptr;
@@ -324,7 +323,7 @@ void sysmenu::handle_signal(const int &signum) {
 				get_style_context()->add_class("visible");
 				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
 				flowbox_itembox.unselect_all();
-				if (config_main.dock_items != "") {
+				if (config_main["main"]["dock-items"] != "") {
 					revealer_search.set_reveal_child(true);
 					revealer_dock.set_reveal_child(false);
 					box_layout.set_valign(Gtk::Align::FILL);
@@ -332,13 +331,13 @@ void sysmenu::handle_signal(const int &signum) {
 					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
 				}
 				show();
-				if (config_main.searchbar && config_main.dock_items == "")
+				if (config_main["main"]["searchbar"] == "true" && config_main["main"]["dock-items"] == "")
 					entry_search.grab_focus();
 
 				break;
 			case 12: // Hiding window
 				get_style_context()->remove_class("visible");
-				if (config_main.dock_items != "") {
+				if (config_main["main"]["dock-items"] != "") {
 					revealer_search.set_reveal_child(false);
 					revealer_dock.set_reveal_child(true);
 					box_layout.set_valign(Gtk::Align::END);
@@ -352,14 +351,14 @@ void sysmenu::handle_signal(const int &signum) {
 						gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 					}, 250);
 				}
-				if (config_main.searchbar)
+				if (config_main["main"]["searchbar"] == "true")
 					entry_search.set_text("");
 				flowbox_recent.unselect_all();
 				flowbox_itembox.unselect_all();
 
 				break;
 			case 34: // Toggling window
-				if (config_main.dock_items != "") {
+				if (config_main["main"]["dock-items"] != "") {
 					starting_height = box_layout.get_height();
 					if (box_layout.get_height() < max_height / 2)
 						handle_signal(10);
@@ -396,7 +395,7 @@ void sysmenu::on_drag_start(const double &x, const double &y) {
 }
 
 void sysmenu::on_drag_update(const double &x, const double &y) {
-	bool margin_ignore = (-y < config_main.dock_icon_size / 2);
+	bool margin_ignore = (-y < std::stoi(config_main["main"]["dock-icon-size"]) / 2);
 	int height = starting_height - y;
 
 	// This mess right here clamps the height to 0 & max possible height
@@ -411,7 +410,7 @@ void sysmenu::on_drag_update(const double &x, const double &y) {
 	}
 	else {
 		// Pulled from top
-		if (y < 0 || height < config_main.dock_icon_size)
+		if (y < 0 || height < std::stoi(config_main["main"]["dock-icon-size"]))
 			return;
 	}
 
@@ -439,7 +438,7 @@ void sysmenu::on_drag_stop(const double &x, const double &y) {
 }
 
 extern "C" {
-	sysmenu *sysmenu_create(const config_menu &cfg) {
+	sysmenu *sysmenu_create(const std::map<std::string, std::map<std::string, std::string>>& cfg) {
 		return new sysmenu(cfg);
 	}
 	void sysmenu_signal(sysmenu *window, int signal) {

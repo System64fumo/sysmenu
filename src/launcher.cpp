@@ -1,28 +1,28 @@
 #include "launcher.hpp"
 
-launcher::launcher(const config_menu &config_main, const Glib::RefPtr<Gio::AppInfo> &app) : Gtk::Box(), app_info(app) {
+launcher::launcher(const std::map<std::string, std::map<std::string, std::string>>& cfg, const Glib::RefPtr<Gio::AppInfo> &app) : Gtk::Box(), app_info(app), config_main(cfg) {
 	name = app_info->get_name();
 	long_name = app_info->get_display_name();
 	progr = app_info->get_executable();
 	descr = app_info->get_description();
 
-	if (config_main.items_per_row == 1)
-		set_margin_top(config_main.app_margin);
+	if (config_main["main"]["items-per-row"] == "1")
+		set_margin_top(std::stoi(config_main["main"]["app-margins"]));
 	else
-		set_margin(config_main.app_margin);
+		set_margin(std::stoi(config_main["main"]["app-margins"]));
 
 	image_program.set(app->get_icon());
-	image_program.set_pixel_size(config_main.icon_size);
+	image_program.set_pixel_size(std::stoi(config_main["main"]["icon-size"]));
 
-	if (long_name.length() > config_main.max_name_length)
-		label_program.set_text(long_name.substr(0, config_main.max_name_length - 2) + "..");
+	if (long_name.length() > std::stoul(config_main["main"]["name-length"]))
+		label_program.set_text(long_name.substr(0, std::stoi(config_main["main"]["name-length"]) - 2) + "..");
 	else
 		label_program.set_text(long_name);
 
 	int size_request = -1;
-	if (config_main.name_under_icon) {
+	if (config_main["main"]["name-under-icon"] == "true") {
 		set_orientation(Gtk::Orientation::VERTICAL);
-		size_request = config_main.max_name_length * 10;
+		size_request = std::stoi(config_main["main"]["name-length"]) * 10;
 		image_program.set_vexpand(true);
 		image_program.set_valign(Gtk::Align::END);
 		label_program.set_margin_top(3);
