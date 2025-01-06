@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
 	// Read launch arguments
 	#ifdef CONFIG_RUNTIME
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:dI:dm:dubn:dp:da:SW:dH:dM:dlD:Svh")) {
+		switch(getopt(argc, argv, "Ssi:I:m:ubn:p:a:W:H:M:lD:vh")) {
 			case 'S':
 				config["main"]["starthidden"] = "true";
 				continue;
