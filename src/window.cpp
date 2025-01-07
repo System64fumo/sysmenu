@@ -349,7 +349,7 @@ void sysmenu::handle_signal(const int &signum) {
 					Glib::signal_timeout().connect_once([&]() {
 						hide();
 						gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
-					}, 250);
+					}, std::stoi(config_main["main"]["animation-duration"]));
 				}
 				if (config_main["main"]["searchbar"] == "true")
 					entry_search.set_text("");
