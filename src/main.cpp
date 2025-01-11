@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 	while (true) {
 		switch(getopt(argc, argv, "Ssi:I:m:ubn:p:a:W:H:M:lD:vh")) {
 			case 'S':
-				config["main"]["starthidden"] = "true";
+				config["main"]["start-hidden"] = "true";
 				continue;
 
 			case 's':
