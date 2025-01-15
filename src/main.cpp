@@ -130,6 +130,11 @@ int main(int argc, char* argv[]) {
 				config["main"]["monitor"] = optarg;
 				continue;
 
+			// -l sets the number of lines in dmenu scripts
+			// there is no trivial way to implement it, but ignoring it is an option
+			case 'l':
+				break;
+
 			case 'L':
 				config["main"]["layer-shell"] = "false";
 				continue;
