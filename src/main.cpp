@@ -162,12 +162,14 @@ int main(int argc, char* argv[]) {
 				std::cout << "  -u	Show name under icon" << std::endl;
 				std::cout << "  -b	Show scroll bars" << std::endl;
 				std::cout << "  -n	Max name length" << std::endl;
-				std::cout << "  -p	Items per row" << std::endl;
+				std::cout << "  -p	Set placeholder text" << std::endl;
+				std::cout << "  -P	Items per row" << std::endl;
 				std::cout << "  -a	Set anchors" << std::endl;
 				std::cout << "  -W	Set window width" << std::endl;
 				std::cout << "  -H	Set window Height" << std::endl;
 				std::cout << "  -M	Set primary monitor" << std::endl;
-				std::cout << "  -l	Disable use of layer shell" << std::endl;
+				std::cout << "  -L	Disable use of layer shell" << std::endl;
+				std::cout << "  -d	dmenu emulation" << std::endl;
 				std::cout << "  -D	Set dock items" << std::endl;
 				std::cout << "  -v	Prints version info" << std::endl;
 				std::cout << "  -h	Show this help message" << std::endl;
