@@ -401,7 +401,7 @@ void sysmenu::handle_signal(const int &signum) {
 				break;
 			case 12: // Hiding window
 				if ( config_main["main"]["dmenu"] == "true"){
-					exit(0);
+					exit(1);
 				}
 				get_style_context()->remove_class("visible");
 				if (config_main["main"]["dock-items"] != "") {
