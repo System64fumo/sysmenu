@@ -233,9 +233,12 @@ void sysmenu::on_search_changed() {
 bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
 	switch(keyval){
 		case GDK_KEY_Return:
-			if ( matches > 0 && state == Gdk::ModifierType::SHIFT_MASK && config_main["main"]["dmenu"] == "true"){
+			if ( matches > 0 && state == Gdk::ModifierType::CONTROL_MASK && config_main["main"]["dmenu"] == "true"){
 				launcher *item = dynamic_cast<launcher*>(selected_child->get_child());
 				std::cout << item->get_long_name() << std::endl;
+			} else if (state == Gdk::ModifierType::SHIFT_MASK && config_main["main"]["dmenu"] == "true") {
+				std::cout << entry_search.get_text() << std::endl;
+				exit(0);
 			}
 			break;
 		case GDK_KEY_Escape:
