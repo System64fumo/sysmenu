@@ -56,7 +56,9 @@ class sysmenu : public Gtk::Window {
 		bool on_sort(Gtk::FlowBoxChild*, Gtk::FlowBoxChild*);
 
 		void app_info_changed(GAppInfoMonitor* gappinfomonitor);
+		void load_dmenu_items();
 		void load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info);
+		void load_menu_item(Glib::ustring string);
 		void run_menu_item(Gtk::FlowBoxChild* child, const bool &recent);
 
 		void on_drag_start(const double &x, const double &y);

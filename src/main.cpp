@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
 	// Read launch arguments
 	#ifdef CONFIG_RUNTIME
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:I:m:ubn:p:a:W:H:M:lD:vh")) {
+		switch(getopt(argc, argv, "Ssi:I:m:ubn:p:a:W:H:M:l:D:vhLP:d")) {
 			case 'S':
 				config["main"]["start-hidden"] = "true";
 				continue;
@@ -106,8 +106,12 @@ int main(int argc, char* argv[]) {
 				config["main"]["name-length"] = optarg;
 				continue;
 
-			case 'p':
+			case 'P':
 				config["main"]["items-per-row"] = optarg;
+				continue;
+
+			case 'p':
+				config["main"]["prompt"] = optarg;
 				continue;
 
 			case 'a':
@@ -126,7 +130,7 @@ int main(int argc, char* argv[]) {
 				config["main"]["monitor"] = optarg;
 				continue;
 
-			case 'l':
+			case 'L':
 				config["main"]["layer-shell"] = "false";
 				continue;
 
@@ -134,6 +138,10 @@ int main(int argc, char* argv[]) {
 				config["main"]["dock-items"] = optarg;
 				config["main"]["layer-shell"] = "true";
 				config["main"]["anchors"] = "top right bottom left";
+				continue;
+
+			case 'd':
+				config["main"]["dmenu"] = "true";
 				continue;
 
 			case 'v':
@@ -171,6 +179,10 @@ int main(int argc, char* argv[]) {
 
 			break;
 	}
+
+	if ( config["main"]["dmenu"] == "true" ) {
+		config["main"]["start-hidden"] = "false";
+	}
 	#endif
 
 	Glib::RefPtr<Gtk::Application> app = Gtk::Application::create("funky.sys64.sysmenu");
@@ -179,10 +191,12 @@ int main(int argc, char* argv[]) {
 	load_libsysmenu();
 	win = sysmenu_create_ptr(config);
 
-	// Catch signals
-	signal(SIGUSR1, handle_signal);
-	signal(SIGUSR2, handle_signal);
-	signal(SIGRTMIN, handle_signal);
+	// Catch signals if not in dmenu mode
+	if (config["main"]["dmenu"] != "true") {
+		signal(SIGUSR1, handle_signal);
+		signal(SIGUSR2, handle_signal);
+		signal(SIGRTMIN, handle_signal);
+	}
 
 	return app->run();
 }

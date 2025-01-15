@@ -2,9 +2,11 @@
 #include "window.hpp"
 #include "css.hpp"
 #include "config.hpp"
+#include "dmenuentry.hpp"
 
 #include <gtkmm/eventcontrollerkey.h>
 #include <gtk4-layer-shell.h>
+#include <string>
 #include <thread>
 #include <iostream>
 #include <filesystem>
@@ -126,12 +128,16 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 
 		entry_search.set_halign(Gtk::Align::CENTER);
 		entry_search.set_icon_from_icon_name("system-search-symbolic", Gtk::Entry::IconPosition::PRIMARY);
-		entry_search.set_placeholder_text("Search");
+		entry_search.set_placeholder_text(config_main["main"]["prompt"]);
 		entry_search.set_margin(10);
 		entry_search.set_size_request(std::stoi(config_main["main"]["width"]) - 20, -1);
 
 		entry_search.signal_changed().connect(sigc::mem_fun(*this, &sysmenu::on_search_changed));
 		entry_search.signal_activate().connect([this]() {
+			if ( matches == 0 && config_main["main"]["dmenu"] == "true" ){
+				std::cout << entry_search.get_text() << std::endl;
+				exit(0);
+			}
 			if (selected_child)
 				run_menu_item(selected_child, false);
 		});
@@ -200,15 +206,20 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 
 	css_loader loader(style_path, this);
 
-	// Load applications
-	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
-	g_signal_connect(app_info_monitor, "changed", G_CALLBACK(+[](GAppInfoMonitor* monitor, gpointer user_data) {
-		sysmenu* self = static_cast<sysmenu*>(user_data);
-		self->app_info_changed(monitor);
-	}), this);
+	// Load entries
+	
+	if (config_main["main"]["dmenu"] == "true"){
+		load_dmenu_items();
+	} else {
+		GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
+		g_signal_connect(app_info_monitor, "changed", G_CALLBACK(+[](GAppInfoMonitor* monitor, gpointer user_data) {
+			sysmenu* self = static_cast<sysmenu*>(user_data);
+			self->app_info_changed(monitor);
+		}), this);
 
-	std::thread thread_appinfo(&sysmenu::app_info_changed, this, nullptr);
-	thread_appinfo.detach();
+		std::thread thread_appinfo(&sysmenu::app_info_changed, this, nullptr);
+		thread_appinfo.detach();
+	}
 }
 
 void sysmenu::on_search_changed() {
@@ -220,17 +231,26 @@ void sysmenu::on_search_changed() {
 }
 
 bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
-	if (keyval == 65307) // Escape key
-		handle_signal(12);
-	else if (keyval == 65289) { // Tab
-		auto children = flowbox_itembox.get_children();
+	switch(keyval){
+		case GDK_KEY_Return:
+			if ( matches > 0 && state == Gdk::ModifierType::SHIFT_MASK && config_main["main"]["dmenu"] == "true"){
+				launcher *item = dynamic_cast<launcher*>(selected_child->get_child());
+				std::cout << item->get_long_name() << std::endl;
+			}
+			break;
+		case GDK_KEY_Escape:
+			handle_signal(12);
+			break;
+		case GDK_KEY_Tab:
+			auto children = flowbox_itembox.get_children();
 
-		if (selected_child == nullptr)
-			selected_child = dynamic_cast<Gtk::FlowBoxChild*>(children[0]);
+			if (selected_child == nullptr)
+				selected_child = dynamic_cast<Gtk::FlowBoxChild*>(children[0]);
 
-		flowbox_itembox.select_child(*selected_child);
-		selected_child->grab_focus();
-	}
+			flowbox_itembox.select_child(*selected_child);
+			selected_child->grab_focus();
+			break;
+	};
 
 	return true;
 }
@@ -243,7 +263,11 @@ bool sysmenu::on_filter(Gtk::FlowBoxChild *child) {
 		matches++;
 		if (matches == 1) {
 			selected_child = child;
+			if (config_main["main"]["dmenu"] == "true") {
+				match = button->get_long_name();
+			} else {
 			match = button->app_info->get_executable();
+			}
 		}
 		return true;
 	}
@@ -275,6 +299,12 @@ void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 	selected_child = nullptr;
 }
 
+void sysmenu::load_dmenu_items(){
+	for (std::string line; std::getline(std::cin,line);) {
+		load_menu_item(Glib::ustring(line));
+	}
+}
+
 void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 	if (!app_info || !app_info->should_show() || !app_info->get_icon())
 		return;
@@ -290,8 +320,39 @@ void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 	flowbox_itembox.append(*items.back());
 }
 
+void sysmenu::load_menu_item(Glib::ustring string) {
+	dmenuentry entry;
+	Glib::ustring name, icon;
+	auto delim = string.rfind('\0');
+	if ( delim != std::string::npos) {
+		name = string.substr(0, delim);
+		string = string.substr(delim+1);
+		delim = string.rfind("icon\x1f");
+		if ( delim == std::string::npos ){
+			icon = "";
+		} else {
+			string = string.substr(delim+5);
+			icon = string.substr(0, string.find("\x1f"));
+		}
+	} else {
+		name = string;
+		icon = "";
+	}
+	entry.content = name;
+	entry.icon = icon;
+	auto pentry = Glib::make_refptr_for_instance(&entry);
+	items.push_back(std::unique_ptr<launcher>(new launcher(config_main, pentry)));
+	flowbox_itembox.append(*items.back());
+}
+
 void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 	launcher *item = dynamic_cast<launcher*>(child->get_child());
+
+	if ( config_main["main"]["dmenu"] == "true" ) {
+		std::cout << item->get_long_name() << std::endl;
+		exit(0);
+	}
+
 	item->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
 	handle_signal(12);
 
@@ -336,6 +397,9 @@ void sysmenu::handle_signal(const int &signum) {
 
 				break;
 			case 12: // Hiding window
+				if ( config_main["main"]["dmenu"] == "true"){
+					exit(0);
+				}
 				get_style_context()->remove_class("visible");
 				if (config_main["main"]["dock-items"] != "") {
 					revealer_search.set_reveal_child(false);
@@ -358,6 +422,9 @@ void sysmenu::handle_signal(const int &signum) {
 
 				break;
 			case 34: // Toggling window
+				if ( config_main["main"]["dmenu"] == "true"){
+					exit(0);
+				}
 				if (config_main["main"]["dock-items"] != "") {
 					starting_height = box_layout.get_height();
 					if (box_layout.get_height() < max_height / 2)
