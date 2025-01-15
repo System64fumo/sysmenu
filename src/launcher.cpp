@@ -1,4 +1,5 @@
 #include "launcher.hpp"
+#include <filesystem>
 
 launcher::launcher(const std::map<std::string, std::map<std::string, std::string>>& cfg, const Glib::RefPtr<Gio::AppInfo> &app) : Gtk::Box(), app_info(app), config_main(cfg) {
 	name = app_info->get_name();
@@ -54,7 +55,16 @@ launcher::launcher(const std::map<std::string, std::map<std::string, std::string
 	else
 		set_margin(std::stoi(config_main["main"]["app-margins"]));
 
-	image_program.set_from_icon_name(entry->icon);
+	if (entry->icon[0] == '~') {
+		
+	}
+
+	std::filesystem::path iconpath = std::filesystem::path(entry->icon);
+	if (std::filesystem::exists(iconpath) ) {
+		image_program.set(std::filesystem::absolute(iconpath));
+	} else {
+		image_program.set_from_icon_name(entry->icon);
+	}
 	image_program.set_pixel_size(std::stoi(config_main["main"]["icon-size"]));
 
 	if (long_name.length() > std::stoul(config_main["main"]["name-length"]))
