@@ -12,6 +12,31 @@ void handle_signal(int signum) {
 	sysmenu_handle_signal_ptr(win, signum);
 }
 
+void usage() {
+	std::cout << "usage:" << std::endl;
+	std::cout << "  sysmenu [argument...]:\n" << std::endl;
+	std::cout << "arguments:" << std::endl;
+	std::cout << "  -S	Hide the program on launch" << std::endl;
+	std::cout << "  -s	Hide the search bar" << std::endl;
+	std::cout << "  -i	Set launcher icon size" << std::endl;
+	std::cout << "  -I	Set dock icon size" << std::endl;
+	std::cout << "  -M	Set launcher margins" << std::endl;
+	std::cout << "  -u	Show name under icon" << std::endl;
+	std::cout << "  -b	Show scroll bars" << std::endl;
+	std::cout << "  -n	Max name length" << std::endl;
+	std::cout << "  -p	Set placeholder text" << std::endl;
+	std::cout << "  -P	Items per row" << std::endl;
+	std::cout << "  -a	Set anchors" << std::endl;
+	std::cout << "  -W	Set window width" << std::endl;
+	std::cout << "  -H	Set window Height" << std::endl;
+	std::cout << "  -m	Set primary monitor" << std::endl;
+	std::cout << "  -L	Disable use of layer shell" << std::endl;
+	std::cout << "  -d	dmenu emulation" << std::endl;
+	std::cout << "  -D	Set dock items" << std::endl;
+	std::cout << "  -v	Prints version info" << std::endl;
+	std::cout << "  -h	Show this help message" << std::endl;
+}
+
 void load_libsysmenu() {
 	void* handle = dlopen("libsysmenu.so", RTLD_LAZY);
 	if (!handle) {
@@ -72,8 +97,9 @@ int main(int argc, char* argv[]) {
 
 	// Read launch arguments
 	#ifdef CONFIG_RUNTIME
+	bool dmenuarg=false;
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:I:m:ubn:p:a:W:H:M:l:D:vhLP:d")) {
+		switch(getopt(argc, argv, "Ssi:I:m:ubn:p:a:W:H:M:l:D:vhLP:dw:")) {
 			case 'S':
 				config["main"]["start-hidden"] = "true";
 				continue;
@@ -90,7 +116,7 @@ int main(int argc, char* argv[]) {
 				config["main"]["dock-icon-size"] = optarg;
 				continue;
 
-			case 'm':
+			case 'M':
 				config["main"]["app-margin"] = optarg;
 				continue;
 
@@ -126,13 +152,15 @@ int main(int argc, char* argv[]) {
 				config["main"]["height"] = optarg;
 				continue;
 
-			case 'M':
+			case 'm':
 				config["main"]["monitor"] = optarg;
 				continue;
 
 			// -l sets the number of lines in dmenu scripts
 			// there is no trivial way to implement it, but ignoring it is an option
 			case 'l':
+			case 'w':
+				dmenuarg=true;
 				break;
 
 			case 'L':
@@ -156,28 +184,7 @@ int main(int argc, char* argv[]) {
 
 			case 'h':
 			default :
-				std::cout << "usage:" << std::endl;
-				std::cout << "  sysmenu [argument...]:\n" << std::endl;
-				std::cout << "arguments:" << std::endl;
-				std::cout << "  -S	Hide the program on launch" << std::endl;
-				std::cout << "  -s	Hide the search bar" << std::endl;
-				std::cout << "  -i	Set launcher icon size" << std::endl;
-				std::cout << "  -I	Set dock icon size" << std::endl;
-				std::cout << "  -m	Set launcher margins" << std::endl;
-				std::cout << "  -u	Show name under icon" << std::endl;
-				std::cout << "  -b	Show scroll bars" << std::endl;
-				std::cout << "  -n	Max name length" << std::endl;
-				std::cout << "  -p	Set placeholder text" << std::endl;
-				std::cout << "  -P	Items per row" << std::endl;
-				std::cout << "  -a	Set anchors" << std::endl;
-				std::cout << "  -W	Set window width" << std::endl;
-				std::cout << "  -H	Set window Height" << std::endl;
-				std::cout << "  -M	Set primary monitor" << std::endl;
-				std::cout << "  -L	Disable use of layer shell" << std::endl;
-				std::cout << "  -d	dmenu emulation" << std::endl;
-				std::cout << "  -D	Set dock items" << std::endl;
-				std::cout << "  -v	Prints version info" << std::endl;
-				std::cout << "  -h	Show this help message" << std::endl;
+				usage();
 				return 0;
 
 			case -1:
@@ -189,6 +196,9 @@ int main(int argc, char* argv[]) {
 
 	if ( config["main"]["dmenu"] == "true" ) {
 		config["main"]["start-hidden"] = "false";
+	} else if ( dmenuarg ) {
+		usage();
+		return 0;
 	}
 	#endif
 

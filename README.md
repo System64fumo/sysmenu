@@ -29,7 +29,7 @@ arguments:
   -s	Hide the search bar
   -i	Set launcher icon size
   -I	Set dock icon size
-  -m	Set launcher margins
+  -M	Set launcher margins
   -u	Show name under icon
   -b	Show scroll bars
   -n	Max name length
