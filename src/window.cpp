@@ -9,10 +9,10 @@
 #include <iostream>
 #include <filesystem>
 #include <glibmm/main.h>
+#include <gtkmm/adjustment.h>
 #include <algorithm>
 
 sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>& cfg) : config_main(cfg) {
-
 	if (config_main["main"]["layer-shell"] == "true") {
 		gtk_layer_init_for_window(gobj());
 		gtk_layer_set_keyboard_mode(gobj(), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
@@ -330,6 +330,11 @@ void sysmenu::handle_signal(const int &signum) {
 					box_layout.set_size_request(-1, max_height);
 					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
 				}
+
+				// Scroll to the top of the list
+				scrolled_window.get_vadjustment()->set_value(0);
+				scrolled_window_inner.get_vadjustment()->set_value(0);
+
 				show();
 				if (config_main["main"]["searchbar"] == "true" && config_main["main"]["dock-items"] == "")
 					entry_search.grab_focus();
