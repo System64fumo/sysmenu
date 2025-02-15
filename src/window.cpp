@@ -11,6 +11,7 @@
 #include <glibmm/main.h>
 #include <gtkmm/adjustment.h>
 #include <algorithm>
+#include <signal.h>
 
 sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>& cfg) : config_main(cfg) {
 	if (config_main["main"]["layer-shell"] == "true") {
@@ -221,7 +222,7 @@ void sysmenu::on_search_changed() {
 
 bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
 	if (keyval == 65307) // Escape key
-		handle_signal(12);
+		handle_signal(SIGUSR2);
 	else if (keyval == 65289) { // Tab
 		auto children = flowbox_itembox.get_children();
 
@@ -293,7 +294,7 @@ void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 	launcher *item = dynamic_cast<launcher*>(child->get_child());
 	item->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
-	handle_signal(12);
+	handle_signal(SIGUSR2);
 
 	// Don't add the item again if the click came from the recent's list
 	if (recent)
@@ -318,8 +319,7 @@ void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 
 void sysmenu::handle_signal(const int &signum) {
 	Glib::signal_idle().connect([this, signum]() {
-		switch (signum) {
-			case 10: // Showing window
+		if (signum == SIGUSR1) { // Showing window
 				get_style_context()->add_class("visible");
 				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
 				flowbox_itembox.unselect_all();
@@ -339,8 +339,7 @@ void sysmenu::handle_signal(const int &signum) {
 				if (config_main["main"]["searchbar"] == "true" && config_main["main"]["dock-items"] == "")
 					entry_search.grab_focus();
 
-				break;
-			case 12: // Hiding window
+		} else if (signum == SIGUSR2) { // Hiding window
 				get_style_context()->remove_class("visible");
 				if (config_main["main"]["dock-items"] != "") {
 					revealer_search.set_reveal_child(false);
@@ -361,22 +360,20 @@ void sysmenu::handle_signal(const int &signum) {
 				flowbox_recent.unselect_all();
 				flowbox_itembox.unselect_all();
 
-				break;
-			case 34: // Toggling window
+		} else if (signum == SIGRTMIN) { // Toggling window
 				if (config_main["main"]["dock-items"] != "") {
 					starting_height = box_layout.get_height();
 					if (box_layout.get_height() < max_height / 2)
-						handle_signal(10);
+						handle_signal(SIGUSR1);
 					else
-						handle_signal(12);
+						handle_signal(SIGUSR2);
 				}
 				else {
 					if (is_visible())
-						handle_signal(12);
+						handle_signal(SIGUSR2);
 					else
-						handle_signal(10);
+						handle_signal(SIGUSR1);
 				}
-				break;
 		}
 		return false;
 	});
@@ -436,10 +433,10 @@ void sysmenu::on_drag_stop(const double &x, const double &y) {
 
 	// Top position
 	if (box_layout.get_height() > max_height / 2)
-		handle_signal(10);
+		handle_signal(SIGUSR1);
 	// Bottom Position
 	else
-		handle_signal(12);
+		handle_signal(SIGUSR2);
 }
 
 extern "C" {

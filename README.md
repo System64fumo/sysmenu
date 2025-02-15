@@ -44,9 +44,9 @@ arguments:
 
 # Signals
 You can send signals to show/hide the window.<br>
-``pkill -10 sysmenu`` to show.<br>
-``pkill -12 sysmenu`` to hide.<br>
-``pkill -34 sysmenu`` to toggle.<br>
+``pkill -USR1 sysmenu`` to show.<br>
+``pkill -USR2 sysmenu`` to hide.<br>
+``pkill -RTMIN sysmenu`` to toggle.<br>
 
 # Theming
 sysmenu uses your gtk4 theme by default, However it can be also load custom css,<br>
