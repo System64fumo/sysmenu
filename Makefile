@@ -10,7 +10,7 @@ LIBDIR ?= $(PREFIX)/lib
 DATADIR ?= $(PREFIX)/share
 
 CXXFLAGS += -Oz -s -Wall -flto -fno-exceptions -fPIC
-LDFLAGS += -Wl,--as-needed,-z,now,-z,pack-relative-relocs
+LDFLAGS += -Wl,--no-as-needed,-z,now,-z,pack-relative-relocs
 
 CXXFLAGS += $(shell pkg-config --cflags $(PKGS))
 LDFLAGS += $(shell pkg-config --libs $(PKGS))
@@ -41,7 +41,7 @@ $(BINS): src/git_info.hpp src/main.cpp src/config_parser.o
 	src/main.cpp \
 	src/config_parser.o \
 	$(CXXFLAGS) \
-	$(shell pkg-config --libs gtkmm-4.0 gtk4-layer-shell-0)
+	$(LDFLAGS) -lwayland-client
 
 $(LIBS): $(OBJS)
 	$(call progress, Linking $@)
