@@ -112,7 +112,6 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 		sigc::mem_fun(*this, &sysmenu::on_key_press), true);
 
 	if (config_main["main"]["searchbar"] == "true") {
-		entry_search.add_controller(controller);
 		entry_search.get_style_context()->add_class("entry_search");
 		if (config_main["main"]["dock-items"] != "") {
 			box_top.append(revealer_search);
@@ -142,8 +141,7 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 		if (config_main["main"]["dock-items"] == "")
 			entry_search.grab_focus();
 	}
-	else
-		add_controller(controller);
+	add_controller(controller);
 
 	box_layout.get_style_context()->add_class("box_layout");
 
@@ -223,7 +221,15 @@ void sysmenu::on_search_changed() {
 bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
 	if (keyval == 65307) // Escape key
 		handle_signal(SIGUSR2);
+	else if (keyval == 65056) { // Shift Tab
+		if (config_main["main"]["searchbar"] == "true" && config_main["main"]["dock-items"] == "")
+			entry_search.grab_focus();
+	}
 	else if (keyval == 65289) { // Tab
+		auto selected_children = flowbox_itembox.get_selected_children();
+		if (selected_children.size() >= 0)
+			return false;
+
 		auto children = flowbox_itembox.get_children();
 
 		if (selected_child == nullptr)
