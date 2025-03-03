@@ -9,6 +9,8 @@
 #include <iostream>
 #include <filesystem>
 #include <glibmm/main.h>
+#include <glibmm/spawn.h>
+#include <glibmm/miscutils.h>
 #include <gtkmm/adjustment.h>
 #include <algorithm>
 #include <signal.h>
@@ -301,7 +303,22 @@ void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
 
 void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 	launcher *item = dynamic_cast<launcher*>(child->get_child());
-	item->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
+
+	if (!item || !item->app_info)
+		return;
+
+	Glib::ustring cmd = item->app_info->get_executable();
+
+	bool uwsm_exists = Glib::find_program_in_path("uwsm").empty() == false;
+
+	std::vector<std::string> args;
+	if (uwsm_exists)
+		args = { "uwsm", "app", "--", cmd.raw() };
+	else
+		args = { cmd.raw() };
+
+	Glib::spawn_async("", args, Glib::SpawnFlags::SEARCH_PATH);
+
 	handle_signal(SIGUSR2);
 
 	// Don't add the item again if the click came from the recent's list
@@ -324,6 +341,7 @@ void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 	app_list_history.push_back(item->app_info);
 	flowbox_recent.set_visible(true);
 }
+
 
 void sysmenu::handle_signal(const int &signum) {
 	Glib::signal_idle().connect([this, signum]() {
