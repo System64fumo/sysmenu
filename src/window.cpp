@@ -238,6 +238,8 @@ bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk:
 		flowbox_itembox.select_child(*selected_child);
 		selected_child->grab_focus();
 	}
+	else if (keyval == 65293) // Enter key
+		return false;
 
 	return true;
 }
