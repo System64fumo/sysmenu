@@ -312,7 +312,7 @@ void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 	bool uwsm_exists = Glib::find_program_in_path("uwsm").empty() == false;
 
 	std::vector<std::string> args;
-	if (uwsm_exists)
+	if (uwsm_exists && config_main["main"]["use-uwsm"] == "true")
 		args = { "uwsm", "app", "--", cmd.raw() };
 	else
 		args = { cmd.raw() };
