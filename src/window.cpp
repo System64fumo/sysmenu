@@ -73,12 +73,6 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 	set_name("sysmenu");
 	set_default_size(std::stoi(config_main["main"]["width"]), std::stoi(config_main["main"]["height"]));
 	set_hide_on_close(true);
-	if (config_main["main"]["start-hidden"] != "true") {
-		show();
-		Glib::signal_timeout().connect_once([&]() {
-			get_style_context()->add_class("visible");
-		}, 100);
-	}
 
 	box_layout.property_orientation().set_value(Gtk::Orientation::VERTICAL);
 	set_child(box_layout);
@@ -346,7 +340,6 @@ void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 void sysmenu::handle_signal(const int &signum) {
 	Glib::signal_idle().connect([this, signum]() {
 		if (signum == SIGUSR1) { // Showing window
-				get_style_context()->add_class("visible");
 				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
 				flowbox_itembox.unselect_all();
 				if (config_main["main"]["dock-items"] != "") {
@@ -362,6 +355,8 @@ void sysmenu::handle_signal(const int &signum) {
 				scrolled_window_inner.get_vadjustment()->set_value(0);
 
 				show();
+				get_style_context()->add_class("visible");
+
 				if (config_main["main"]["searchbar"] == "true" && config_main["main"]["dock-items"] == "")
 					entry_search.grab_focus();
 
