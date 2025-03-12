@@ -32,9 +32,6 @@ void dock::load_items(const std::vector<std::shared_ptr<Gio::AppInfo>> &items) {
 		if (config_main["main"]["dock-items"].find(name) == std::string::npos)
 			continue;
 
-		if (config_main["main"]["dock-items"].find(name) != std::string::npos)
-			continue;
-
 		dock_existing_items = dock_existing_items + name;
 		auto item = Gtk::make_managed<dock_item>(app_info, std::stoi(config_main["main"]["dock-icon-size"]));
 		append(*item);
