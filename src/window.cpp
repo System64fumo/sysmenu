@@ -136,6 +136,8 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 
 		if (config_main["main"]["dock-items"] == "")
 			entry_search.grab_focus();
+		else
+			show();
 	}
 	add_controller(controller);
 
@@ -204,6 +206,9 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 
 	std::thread thread_appinfo(&sysmenu::app_info_changed, this, nullptr);
 	thread_appinfo.detach();
+
+	if (config_main["main"]["start-hidden"] != "true")
+		handle_signal(SIGUSR1);
 }
 
 void sysmenu::on_search_changed() {
