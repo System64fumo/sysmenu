@@ -3,10 +3,13 @@
 #include "config_parser.hpp"
 #include "git_info.hpp"
 
-#include <gtkmm/application.h>
 #include <filesystem>
-#include <iostream>
 #include <dlfcn.h>
+#include <unistd.h> 
+#include <signal.h> 
+
+QApplication* app = nullptr;
+sysmenu* win = nullptr;
 
 void handle_signal(int signum) {
 	sysmenu_handle_signal_ptr(win, signum);
@@ -15,7 +18,7 @@ void handle_signal(int signum) {
 void load_libsysmenu() {
 	void* handle = dlopen("libsysmenu.so", RTLD_LAZY);
 	if (!handle) {
-		std::cerr << "Cannot open library: " << dlerror() << '\n';
+		std::fprintf(stderr, "Cannot open library: %s\n", dlerror());
 		exit(1);
 	}
 
@@ -23,7 +26,7 @@ void load_libsysmenu() {
 	sysmenu_handle_signal_ptr = (sysmenu_handle_signal_func)dlsym(handle, "sysmenu_signal");
 
 	if (!sysmenu_create_ptr || !sysmenu_handle_signal_ptr) {
-		std::cerr << "Cannot load symbols: " << dlerror() << '\n';
+		std::fprintf(stderr, "Cannot load symbols: %s\n", dlerror());
 		dlclose(handle);
 		exit(1);
 	}
@@ -73,7 +76,7 @@ int main(int argc, char* argv[]) {
 	// Read launch arguments
 	#ifdef CONFIG_RUNTIME
 	while (true) {
-		switch(getopt(argc, argv, "Ssi:I:m:ubn:p:a:W:H:M:lD:vh")) {
+		switch(getopt(argc, argv, "Ssi:m:ubn:p:a:W:H:M:vh")) {
 			case 'S':
 				config["main"]["start-hidden"] = "true";
 				continue;
@@ -84,10 +87,6 @@ int main(int argc, char* argv[]) {
 
 			case 'i':
 				config["main"]["icon-size"] = optarg;
-				continue;
-
-			case 'I':
-				config["main"]["dock-icon-size"] = optarg;
 				continue;
 
 			case 'm':
@@ -126,43 +125,30 @@ int main(int argc, char* argv[]) {
 				config["main"]["monitor"] = optarg;
 				continue;
 
-			case 'l':
-				config["main"]["layer-shell"] = "false";
-				continue;
-
-			case 'D':
-				config["main"]["dock-items"] = optarg;
-				config["main"]["layer-shell"] = "true";
-				config["main"]["anchors"] = "top right bottom left";
-				continue;
-
 			case 'v':
-				std::cout << "Commit: " << GIT_COMMIT_MESSAGE << std::endl;
-				std::cout << "Date: " << GIT_COMMIT_DATE << std::endl;
+				std::printf("Commit: %s\n", GIT_COMMIT_MESSAGE);
+				std::printf("Date: %s\n", GIT_COMMIT_DATE);
 				return 0;
 
 			case 'h':
 			default :
-				std::cout << "usage:" << std::endl;
-				std::cout << "  sysmenu [argument...]:\n" << std::endl;
-				std::cout << "arguments:" << std::endl;
-				std::cout << "  -S	Hide the program on launch" << std::endl;
-				std::cout << "  -s	Hide the search bar" << std::endl;
-				std::cout << "  -i	Set launcher icon size" << std::endl;
-				std::cout << "  -I	Set dock icon size" << std::endl;
-				std::cout << "  -m	Set launcher margins" << std::endl;
-				std::cout << "  -u	Show name under icon" << std::endl;
-				std::cout << "  -b	Show scroll bars" << std::endl;
-				std::cout << "  -n	Max name length" << std::endl;
-				std::cout << "  -p	Items per row" << std::endl;
-				std::cout << "  -a	Set anchors" << std::endl;
-				std::cout << "  -W	Set window width" << std::endl;
-				std::cout << "  -H	Set window Height" << std::endl;
-				std::cout << "  -M	Set primary monitor" << std::endl;
-				std::cout << "  -l	Disable use of layer shell" << std::endl;
-				std::cout << "  -D	Set dock items" << std::endl;
-				std::cout << "  -v	Prints version info" << std::endl;
-				std::cout << "  -h	Show this help message" << std::endl;
+				std::printf("usage:\n");
+				std::printf("  sysmenu [argument...]:\n\n");
+				std::printf("arguments:\n");
+				std::printf("  -S	Hide the program on launch\n");
+				std::printf("  -s	Hide the search bar\n");
+				std::printf("  -i	Set launcher icon size\n");
+				std::printf("  -m	Set launcher margins\n");
+				std::printf("  -u	Show name under icon\n");
+				std::printf("  -b	Show scroll bars\n");
+				std::printf("  -n	Max name length\n");
+				std::printf("  -p	Items per row\n");
+				std::printf("  -a	Set anchors\n");
+				std::printf("  -W	Set window width\n");
+				std::printf("  -H	Set window Height\n");
+				std::printf("  -M	Set primary monitor\n");
+				std::printf("  -v	Prints version info\n");
+				std::printf("  -h	Show this help message\n");
 				return 0;
 
 			case -1:
@@ -173,8 +159,7 @@ int main(int argc, char* argv[]) {
 	}
 	#endif
 
-	Glib::RefPtr<Gtk::Application> app = Gtk::Application::create("funky.sys64.sysmenu");
-	app->hold();
+	app = new QApplication(argc, argv);
 
 	load_libsysmenu();
 	win = sysmenu_create_ptr(config);
@@ -184,5 +169,5 @@ int main(int argc, char* argv[]) {
 	signal(SIGUSR2, handle_signal);
 	signal(SIGRTMIN, handle_signal);
 
-	return app->run();
+	return app->exec();
 }

@@ -1,58 +1,87 @@
 #include "launcher.hpp"
+#include <QEvent>
+#include <QKeyEvent>
+#include <QProcess>
 
-launcher::launcher(const std::map<std::string, std::map<std::string, std::string>>& cfg, const Glib::RefPtr<Gio::AppInfo> &app) : Gtk::Box(), app_info(app), config_main(cfg) {
-	name = app_info->get_name();
-	long_name = app_info->get_display_name();
-	progr = app_info->get_executable();
-	descr = app_info->get_description();
+launcher::launcher(const QString& name, const QIcon& icon, const QString& comment, 
+				   int icon_size, int name_limit, bool vertical,
+				   ClickCallback on_click, QWidget* parent)
+	: QWidget(parent), name(name), exec(""), click_callback(std::move(on_click)) {
 
-	if (config_main["main"]["items-per-row"] == "1")
-		set_margin_top(std::stoi(config_main["main"]["app-margins"]));
-	else
-		set_margin(std::stoi(config_main["main"]["app-margins"]));
+	setObjectName("application");
+	QBoxLayout *layout = new QBoxLayout(QBoxLayout::LeftToRight, this);
+	if (vertical)
+		layout->setDirection(QBoxLayout::TopToBottom);
 
-	image_program.set(app->get_icon());
-	image_program.set_pixel_size(std::stoi(config_main["main"]["icon-size"]));
-
-	if (long_name.length() > std::stoul(config_main["main"]["name-length"]))
-		label_program.set_text(long_name.substr(0, std::stoi(config_main["main"]["name-length"]) - 2) + "..");
-	else
-		label_program.set_text(long_name);
-
-	int size_request = -1;
-	if (config_main["main"]["name-under-icon"] == "true") {
-		set_orientation(Gtk::Orientation::VERTICAL);
-		size_request = std::stoi(config_main["main"]["name-length"]) * 10;
-		image_program.set_vexpand(true);
-		image_program.set_valign(Gtk::Align::END);
-		label_program.set_margin_top(3);
-		label_program.set_vexpand(true);
-		label_program.set_valign(Gtk::Align::START);
+	icon_label = new QLabel();
+	QPixmap pixmap = icon.pixmap(icon_size, icon_size);
+	icon_label->setPixmap(pixmap);
+	icon_label->setAlignment(Qt::AlignCenter);
+	icon_label->setMinimumSize(icon_size, icon_size);
+	
+	QString display_name = name;
+	if (display_name.length() > name_limit) {
+		display_name = display_name.left(name_limit - 3) + "...";
 	}
+	text_label = new QLabel(display_name);
+	if (vertical)
+		text_label->setAlignment(Qt::AlignCenter);
 	else
-		label_program.property_margin_start().set_value(10);
-
-	append(image_program);
-	append(label_program);
-
-	set_hexpand(true);
-	set_size_request(size_request, size_request);
-
-	get_style_context()->add_class("launcher");
-	set_tooltip_text(descr);
+		text_label->setAlignment(Qt::AlignLeft);
+	text_label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+	
+	layout->addWidget(icon_label);
+	layout->addWidget(text_label);
+	
+	if (!comment.isEmpty()) {
+		setToolTip(comment);
+	}
+	
+	icon_label->installEventFilter(this);
+	text_label->installEventFilter(this);
+	this->installEventFilter(this);
 }
 
-bool launcher::matches(Glib::ustring pattern) {
-	Glib::ustring text =
-		name.lowercase() + "$" +
-		long_name.lowercase() + "$" +
-		progr.lowercase() + "$" +
-		descr.lowercase();
-
-	return text.find(pattern.lowercase()) != text.npos;
+void launcher::set_click_callback(ClickCallback callback) {
+	click_callback = std::move(callback);
 }
 
-bool launcher::operator < (const launcher& other) {
-	return Glib::ustring(app_info->get_name()).lowercase()
-		< Glib::ustring(other.app_info->get_name()).lowercase();
+bool launcher::eventFilter(QObject* obj, QEvent* event) {
+	if (event->type() == QEvent::MouseButtonRelease) {
+		QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+		if (mouseEvent->button() == Qt::LeftButton) {
+			if (obj == icon_label || obj == text_label || obj == this) {
+				handle_click("");
+				return true;
+			}
+		}
+	}
+	return QWidget::eventFilter(obj, event);
+}
+
+void launcher::handle_click(const QString& terminal_cmd) {
+	if (exec.isEmpty()) return;
+
+	QString command = exec;
+	command = command.replace("%f", "").replace("%F", "")
+					.replace("%u", "").replace("%U", "")
+					.replace("%i", "").replace("%c", "")
+					.trimmed();
+
+	if (!terminal_cmd.isEmpty() && (exec.contains("Terminal=true", Qt::CaseInsensitive))) {
+		QStringList terminalArgs = terminal_cmd.split(' ');
+		QString program = terminalArgs.takeFirst();
+		terminalArgs << command;
+		QProcess::startDetached(program, terminalArgs);
+	} else {
+		QProcess::startDetached(command);
+	}
+
+	if (click_callback) {
+		click_callback();
+	}
+}
+
+void launcher::trigger_click(const QString& terminal_cmd) {
+	handle_click(terminal_cmd);
 }

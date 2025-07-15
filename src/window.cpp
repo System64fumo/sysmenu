@@ -1,474 +1,383 @@
-#include "main.hpp"
 #include "window.hpp"
-#include "css.hpp"
-#include "config.hpp"
-
-#include <gtkmm/eventcontrollerkey.h>
-#include <gtk4-layer-shell.h>
-#include <thread>
-#include <iostream>
-#include <filesystem>
-#include <glibmm/main.h>
-#include <glibmm/spawn.h>
-#include <glibmm/miscutils.h>
-#include <gtkmm/adjustment.h>
-#include <algorithm>
 #include <signal.h>
+#include <QPainter>
+#include <QPixmap>
+#include <QDir>
+#include <QFile>
+#include <QStandardPaths>
+#include <QKeyEvent>
+#include <QToolTip>
+#include <QScrollBar>
+#include <LayerShellQt/Shell>
+#include <LayerShellQt/Window>
 
-sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>& cfg) : config_main(cfg) {
-	if (config_main["main"]["layer-shell"] == "true") {
-		gtk_layer_init_for_window(gobj());
-		gtk_layer_set_keyboard_mode(gobj(), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
-		gtk_layer_set_namespace(gobj(), "sysmenu");
+sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>& cfg) 
+	: config(cfg), handle(nullptr) {
 
-		bool edge_top = (config_main["main"]["anchors"].find("top") != std::string::npos);
-		bool edge_right = (config_main["main"]["anchors"].find("right") != std::string::npos);
-		bool edge_bottom = (config_main["main"]["anchors"].find("bottom") != std::string::npos);
-		bool edge_left = (config_main["main"]["anchors"].find("left") != std::string::npos);
+	icon_size = std::stoi(config["main"]["icon-size"]);
+	app_margins = std::stoi(config["main"]["app-margins"]);
+	name_length = std::stoi(config["main"]["name-length"]);
+	scroll_bars = config["main"]["scroll-bars"] == "true";
+	items_per_row = std::stoi(config["main"]["items-per-row"]);
+	terminal_cmd = QString::fromStdString(config["main"]["terminal-cmd"]); // TODO: Fix this
+	name_under_icon = config["main"]["name-under-icon"] == "true";
+	searchbar_enabled = config["main"]["searchbar"] == "true";
+	monitor = std::stoi(config["main"]["monitor"]);
 
-		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, edge_top);
-		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_RIGHT, edge_right);
-		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_BOTTOM, edge_bottom);
-		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_LEFT, edge_left);
-
-		if (config_main["main"]["dock-items"] != "")
-			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
-	}
-
-	// Dock
-	if (config_main["main"]["dock-items"] != "") {
-		sysmenu_dock = Gtk::make_managed<dock>(config_main);
-		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
-		// TODO: Dragging causes the inner scrollbox to resize, This is bad as
-		// it uses a lot of cpu power trying to resize things.
-		// Is this even possible to fix?
-
-		// Set up gestures
-		gesture_drag = Gtk::GestureDrag::create();
-		gesture_drag->signal_drag_begin().connect(sigc::mem_fun(*this, &sysmenu::on_drag_start));
-		gesture_drag->signal_drag_update().connect(sigc::mem_fun(*this, &sysmenu::on_drag_update));
-		gesture_drag->signal_drag_end().connect(sigc::mem_fun(*this, &sysmenu::on_drag_stop));
-
-		// Set up revealer
-		revealer_dock.set_child(*sysmenu_dock);
-		revealer_dock.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
-		revealer_dock.set_transition_duration(500);
-		revealer_dock.set_reveal_child(true);
-		revealer_search.set_reveal_child(false);
-
-		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
-		box_layout.append(box_top);
-		box_top.append(revealer_dock);
-		box_top.property_orientation().set_value(Gtk::Orientation::VERTICAL);
-		box_top.add_controller(gesture_drag);
-
-		// Set window height to the dock's height
-		config_main["main"]["height"] = "30";
-		box_layout.set_valign(Gtk::Align::END);
-	}
-	else
-		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
-
-	// Initialize
-	set_name("sysmenu");
-	set_default_size(std::stoi(config_main["main"]["width"]), std::stoi(config_main["main"]["height"]));
-	set_hide_on_close(true);
-
-	box_layout.property_orientation().set_value(Gtk::Orientation::VERTICAL);
-	set_child(box_layout);
-	box_layout.append(scrolled_window_inner);
-	scrolled_window_inner.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
-	scrolled_window_inner.set_child(box_layout_inner);
-	scrolled_window_inner.set_kinetic_scrolling(false);
-	box_layout_inner.set_orientation(Gtk::Orientation::VERTICAL);
-	box_layout_inner.get_style_context()->add_class("box_layout_inner");
-
-	// Sadly there does not seem to be a way to detect what the default monitor is
-	// Gotta assume or ask the user for their monitor of choice
-	display = gdk_display_get_default();
-	monitors = gdk_display_get_monitors(display);
-	monitorCount = g_list_model_get_n_items(monitors);
-	monitor = GDK_MONITOR(g_list_model_get_item(monitors, std::stoi(config_main["main"]["monitor"])));
-
-	GdkRectangle geometry;
-	gdk_monitor_get_geometry(monitor, &geometry);
-	max_height = geometry.height;
-
-	// Keep the values in check
-	if (std::stoi(config_main["main"]["monitor"]) < 0)
-		config_main["main"]["monitor"] = "0";
-	else if (std::stoi(config_main["main"]["monitor"]) >= monitorCount)
-		config_main["main"]["monitor"] = std::to_string(monitorCount - 1);
-	else if (config_main["main"]["layer-shell"] == "true")
-		gtk_layer_set_monitor(gobj(), GDK_MONITOR(g_list_model_get_item(monitors, std::stoi(config_main["main"]["monitor"]))));
-
-	// Events
-	auto controller = Gtk::EventControllerKey::create();
-	controller->signal_key_pressed().connect(
-		sigc::mem_fun(*this, &sysmenu::on_key_press), true);
-
-	if (config_main["main"]["searchbar"] == "true") {
-		entry_search.get_style_context()->add_class("entry_search");
-		if (config_main["main"]["dock-items"] != "") {
-			box_top.append(revealer_search);
-			revealer_search.get_style_context()->add_class("revealer_search");
-			revealer_search.set_child(entry_search);
-			revealer_search.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
-			revealer_search.set_transition_duration(500);
-		}
-		else {
-			box_layout.prepend(entry_search);
-		}
-
-		entry_search.set_halign(Gtk::Align::CENTER);
-		entry_search.set_icon_from_icon_name("system-search-symbolic", Gtk::Entry::IconPosition::PRIMARY);
-		entry_search.set_placeholder_text("Search");
-		entry_search.set_margin(10);
-		entry_search.set_size_request(std::stoi(config_main["main"]["width"]) - 20, -1);
-
-		entry_search.signal_changed().connect(sigc::mem_fun(*this, &sysmenu::on_search_changed));
-		entry_search.signal_activate().connect([this]() {
-			if (selected_child)
-				run_menu_item(selected_child, false);
-		});
-		flowbox_itembox.set_sort_func(sigc::mem_fun(*this, &sysmenu::on_sort));
-		flowbox_itembox.set_filter_func(sigc::mem_fun(*this, &sysmenu::on_filter));
-
-		if (config_main["main"]["dock-items"] == "")
-			entry_search.grab_focus();
-		else
-			show();
-	}
-	add_controller(controller);
-
-	box_layout.get_style_context()->add_class("box_layout");
-
-	if (std::stoi(config_main["main"]["items-per-row"]) != 1) {
-		flowbox_itembox.set_halign(Gtk::Align::CENTER);
-		history_size = std::stoi(config_main["main"]["items-per-row"]);
-	}
-
-	// Recently launched
-	// TODO: Add history size config option
-	if (history_size > 0) {
-		if (std::stoi(config_main["main"]["items-per-row"]) != 1) {
-			box_layout_inner.append(flowbox_recent);
-			flowbox_recent.set_halign(Gtk::Align::CENTER);
-			flowbox_recent.set_orientation(Gtk::Orientation::HORIZONTAL);
-		}
-		else
-			box_scrolled_contents.append(flowbox_recent);
-
-		flowbox_recent.set_visible(false);
-		flowbox_recent.get_style_context()->add_class("flowbox_recent");
-		flowbox_recent.set_valign(Gtk::Align::START);
-		flowbox_recent.set_vexpand_set(true);
-		flowbox_recent.set_min_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
-		flowbox_recent.set_max_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
-		flowbox_recent.signal_child_activated().connect([this](Gtk::FlowBoxChild* child) {
-			run_menu_item(child, true);
-		});
-	}
-
-	box_layout_inner.append(scrolled_window);
-	scrolled_window.set_child(box_scrolled_contents);
-	box_scrolled_contents.set_orientation(Gtk::Orientation::VERTICAL);
-	box_scrolled_contents.append(flowbox_itembox);
-
-	if (config_main["main"]["searchbar"] != "true")
-		scrolled_window.set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::EXTERNAL);
-
-	flowbox_itembox.set_valign(Gtk::Align::START);
-	flowbox_itembox.set_min_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
-	flowbox_itembox.set_max_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
-	flowbox_itembox.set_vexpand(true);
-	flowbox_itembox.signal_child_activated().connect([this](Gtk::FlowBoxChild* child) {
-		run_menu_item(child, false);
+	setup_window();
+	setup_layer_shell();
+	setup_watcher();
+	
+	load_future = std::async(std::launch::async, [this]() {
+		load_applications();
 	});
 
-	// Load custom css
-	std::string style_path;
-	if (std::filesystem::exists(std::string(getenv("HOME")) + "/.config/sys64/menu/style.css"))
-		style_path = std::string(getenv("HOME")) + "/.config/sys64/menu/style.css";
-	else if (std::filesystem::exists("/usr/share/sys64/menu/style.css"))
-		style_path = "/usr/share/sys64/menu/style.css";
-	else
-		style_path = "/usr/local/share/sys64/menu/style.css";
+	if (config["main"]["start-hidden"] == "true")
+		return;
 
-	css_loader loader(style_path, this);
-
-	// Load applications
-	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
-	g_signal_connect(app_info_monitor, "changed", G_CALLBACK(+[](GAppInfoMonitor* monitor, gpointer user_data) {
-		sysmenu* self = static_cast<sysmenu*>(user_data);
-		self->app_info_changed(monitor);
-	}), this);
-
-	std::thread thread_appinfo(&sysmenu::app_info_changed, this, nullptr);
-	thread_appinfo.detach();
-
-	if (config_main["main"]["start-hidden"] != "true")
-		handle_signal(SIGUSR1);
+	show();
 }
 
-void sysmenu::on_search_changed() {
-	flowbox_recent.set_visible(entry_search.get_text() == "" && app_list_history.size() > 0);
-	matches = 0;
-	match = "";
-	selected_child = nullptr;
-	flowbox_itembox.invalidate_filter();
+void sysmenu::setup_layer_shell() {
+	createWinId();
+	handle = windowHandle();
+
+	auto layer_shell = LayerShellQt::Window::get(handle);
+	layer_shell->setLayer(LayerShellQt::Window::LayerTop);
+
+	if (config["main"].count("anchors")) {
+		QString anchors = QString::fromStdString(config["main"]["anchors"]);
+		LayerShellQt::Window::Anchors anchor_flags;
+		if (anchors.contains("top")) anchor_flags |= LayerShellQt::Window::AnchorTop;
+		if (anchors.contains("bottom")) anchor_flags |= LayerShellQt::Window::AnchorBottom;
+		if (anchors.contains("left")) anchor_flags |= LayerShellQt::Window::AnchorLeft;
+		if (anchors.contains("right")) anchor_flags |= LayerShellQt::Window::AnchorRight;
+		layer_shell->setAnchors(anchor_flags);
+	}
+
+	layer_shell->setExclusiveZone(-1);
+	layer_shell->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityOnDemand);
+
+	if (monitor != -1) {
+		auto screens = QGuiApplication::screens();
+		if (monitor >= 0 && monitor < screens.size())
+			layer_shell->setScreenConfiguration(static_cast<LayerShellQt::Window::ScreenConfiguration>(monitor));
+	}
+	else {
+		layer_shell->setScreenConfiguration(LayerShellQt::Window::ScreenFromCompositor);
+	}
+
+	layer_shell->setScope("sysmenu");
 }
 
-bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
-	if (keyval == 65307) // Escape key
-		handle_signal(SIGUSR2);
-	else if (keyval == 65056) { // Shift Tab
-		if (config_main["main"]["searchbar"] == "true" && config_main["main"]["dock-items"] == "")
-			entry_search.grab_focus();
+void sysmenu::setup_window() {
+	setWindowTitle("sysmenu");
+	setObjectName("sysmenu");
+	resize(std::stoi(config["main"]["width"]), std::stoi(config["main"]["height"]));
+
+	const std::string& style_path = "/usr/share/sys64/menu/style.qss";
+	const std::string& style_path_usr = std::string(getenv("HOME")) + "/.config/sys64/menu/style.qss";
+
+	if (std::filesystem::exists(style_path))
+		load_qss(style_path);
+
+	if (std::filesystem::exists(style_path_usr))
+		load_qss(style_path_usr);
+
+	setAttribute(Qt::WA_TranslucentBackground);
+	setAttribute(Qt::WA_NoSystemBackground);
+
+	QBoxLayout *layout = new QBoxLayout(QBoxLayout::LeftToRight, this);
+	layout->setContentsMargins(0, 0, 0, 0);
+	layout->setSpacing(0);
+	layout->setAlignment(Qt::AlignCenter);
+
+	QWidget* container = new QWidget();
+	container->setObjectName("container");
+	QVBoxLayout* main_layout = new QVBoxLayout(container);
+	main_layout->setContentsMargins(10, 10, 10, 10);
+	main_layout->setSpacing(10);
+	main_layout->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
+
+	if (searchbar_enabled) {
+		search_entry = new QLineEdit();
+		search_entry->setFixedWidth(std::stoi(config["main"]["width"]));
+		search_entry->setPlaceholderText("Search");
+		search_entry->setObjectName("search_entry");
+
+		search_action = new QAction(search_entry);
+		search_action->setIcon(QIcon::fromTheme("edit-find-symbolic"));
+		search_entry->addAction(search_action, QLineEdit::LeadingPosition);
+
+		QObject::connect(search_entry, &QLineEdit::textChanged, [this](const QString& text) {
+			this->filter_items(text);
+		});
+
+		search_entry->installEventFilter(this);
+		main_layout->addWidget(search_entry, 1, {Qt::AlignHCenter});
 	}
-	else if (keyval == 65289) { // Tab
-		auto selected_children = flowbox_itembox.get_selected_children();
-		if (selected_children.size() >= 0)
-			return false;
-
-		auto children = flowbox_itembox.get_children();
-
-		if (selected_child == nullptr)
-			selected_child = dynamic_cast<Gtk::FlowBoxChild*>(children[0]);
-
-		flowbox_itembox.select_child(*selected_child);
-		selected_child->grab_focus();
+	
+	QWidget* scroll_container = new QWidget();
+	scroll_container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	QHBoxLayout* scroll_container_layout = new QHBoxLayout(scroll_container);
+	scroll_container_layout->setContentsMargins(0, 0, 0, 0);
+	scroll_container_layout->setSpacing(0);
+	scroll_container_layout->setAlignment(Qt::AlignHCenter);
+	
+	scroll_area = new QScrollArea();
+	scroll_area->setHorizontalScrollBarPolicy(scroll_bars ? Qt::ScrollBarAsNeeded : Qt::ScrollBarAlwaysOff);
+	scroll_area->setVerticalScrollBarPolicy(scroll_bars ? Qt::ScrollBarAsNeeded : Qt::ScrollBarAlwaysOff);
+	
+	scroll_content = new QWidget();
+	
+	if (items_per_row > 1) {
+		scroll_layout = new QGridLayout(scroll_content);
+		scroll_area->setAlignment(Qt::AlignCenter);
+		scroll_content->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 	}
-	else if (keyval == 65293) // Enter key
+	else {
+		scroll_layout = new QVBoxLayout(scroll_content);
+	}
+	scroll_layout->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
+	scroll_layout->setContentsMargins(app_margins, app_margins, app_margins, app_margins);
+	scroll_layout->setSpacing(app_margins);
+	
+	scroll_area->setWidget(scroll_content);
+	scroll_area->setWidgetResizable(true);
+	scroll_area->setFrameShape(QFrame::NoFrame);
+	
+	scroll_container_layout->addWidget(scroll_area);
+	main_layout->addWidget(scroll_container);
+	layout->addWidget(container);
+}
+
+bool sysmenu::eventFilter(QObject* obj, QEvent* event) {
+	if (obj == search_entry && event->type() == QEvent::KeyPress) {
+		QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
+		if (key_event->key() == Qt::Key_Return || key_event->key() == Qt::Key_Enter) {
+			if (!visible_items.empty()) {
+				visible_items.front()->trigger_click(terminal_cmd);
+				handle_signal(SIGUSR2);
+			}
+			return true;
+		}
+		else if (key_event->key() == Qt::Key_Escape) {
+			handle_signal(SIGUSR2);
+			return true;
+		}
+	}
+	return QWidget::eventFilter(obj, event);
+}
+
+QString sysmenu::get_desktop_file_info(const QString& path, const QString& key) {
+	static QHash<QString, QString> cache;
+	QString cache_key = path + ":" + key;
+	
+	if (cache.contains(cache_key)) {
+		return cache[cache_key];
+	}
+
+	QFile file(path);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		return "";
+	}
+
+	QTextStream in(&file);
+	bool in_desktop_entry = false;
+	QString result;
+
+	while (!in.atEnd()) {
+		QString line = in.readLine().trimmed();
+		if (line.startsWith("[") && line.endsWith("]")) {
+			in_desktop_entry = (line == "[Desktop Entry]");
+			continue;
+		}
+
+		if (in_desktop_entry && line.startsWith(key + "=")) {
+			result = line.mid(key.length() + 1).trimmed();
+			break;
+		}
+	}
+
+	cache[cache_key] = result;
+	return result;
+}
+
+void sysmenu::load_applications() {
+	QStringList app_dirs = QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation);
+	std::vector<std::pair<QString, QIcon>> app_data;
+	std::unordered_set<QString> seen_apps;
+
+	for (const QString& dir_path : app_dirs) {
+		QDir dir(dir_path);
+		if (!dir.exists()) continue;
+
+		for (const QFileInfo& file_info : dir.entryInfoList({"*.desktop"}, QDir::Files)) {
+			QString file_path = file_info.absoluteFilePath();
+			
+			if (!should_show_application(file_path)) {
+				continue;
+			}
+
+			QString name = get_desktop_file_info(file_path, "Name");
+			QString exec = get_desktop_file_info(file_path, "Exec");
+			QString icon_name = get_desktop_file_info(file_path, "Icon");
+			QString comment = get_desktop_file_info(file_path, "Comment");
+
+			if (name.isEmpty() || exec.isEmpty()) {
+				continue;
+			}
+
+			if (seen_apps.find(name) != seen_apps.end()) {
+				continue;
+			}
+			seen_apps.insert(name);
+
+			QIcon icon = icon_name.isEmpty() ? 
+				QIcon::fromTheme("application-x-executable") : 
+				QIcon::fromTheme(icon_name, QIcon::fromTheme("application-x-executable"));
+
+			app_data.emplace_back(name + "\t" + exec + "\t" + comment, icon);
+		}
+	}
+
+	std::sort(app_data.begin(), app_data.end(), 
+		[](const auto& a, const auto& b) {
+			return QString::compare(a.first.split('\t')[0], b.first.split('\t')[0], Qt::CaseInsensitive) < 0;
+		});
+
+	QMetaObject::invokeMethod(this, [this, app_data = std::move(app_data)]() {
+		int row = 0, col = 0;
+		for (const auto& [data, icon] : app_data) {
+			auto parts = data.split('\t');
+			launcher* item = new launcher(
+				parts[0], icon, parts[2], icon_size, name_length, name_under_icon,
+				[this]() { handle_signal(SIGUSR2); },
+				scroll_content
+			);
+			item->exec = parts[1];
+			
+			if (items_per_row > 1) {
+				qobject_cast<QGridLayout*>(scroll_layout)->addWidget(item, row, col);
+				col++;
+				if (col >= items_per_row) {
+					col = 0;
+					row++;
+				}
+			} else {
+				qobject_cast<QVBoxLayout*>(scroll_layout)->addWidget(item);
+			}
+			
+			all_items.push_back(item);
+			visible_items.push_back(item);
+		}
+	});
+}
+
+bool sysmenu::should_show_application(const QString& desktop_file_path) {
+	QString only_show_in = get_desktop_file_info(desktop_file_path, "OnlyShowIn");
+	QString not_show_in = get_desktop_file_info(desktop_file_path, "NotShowIn");
+	
+	if (!only_show_in.isEmpty())
+		return false;
+
+	const bool no_display = get_desktop_file_info(desktop_file_path, "NoDisplay") == "true";
+	const bool hidden = get_desktop_file_info(desktop_file_path, "Hidden") == "true";
+	if (no_display || hidden)
 		return false;
 
 	return true;
 }
 
-bool sysmenu::on_filter(Gtk::FlowBoxChild *child) {
-	auto button = dynamic_cast<launcher*> (child->get_child());
-	auto text = entry_search.get_text();
-
-	if (button->matches(text)) {
-		matches++;
-		if (matches == 1) {
-			selected_child = child;
-			match = button->app_info->get_executable();
+void sysmenu::filter_items(const QString& text) {
+	for (auto item : visible_items) {
+		scroll_layout->removeWidget(item);
+		item->hide();
+	}
+	visible_items.clear();
+	
+	int row = 0, col = 0;
+	for (auto item : all_items) {
+		if (text.isEmpty() || item->name.contains(text, Qt::CaseInsensitive)) {
+			if (items_per_row > 1) {
+				qobject_cast<QGridLayout*>(scroll_layout)->addWidget(item, row, col);
+				col++;
+				if (col >= items_per_row) {
+					col = 0;
+					row++;
+				}
+			}
+			else {
+				qobject_cast<QVBoxLayout*>(scroll_layout)->addWidget(item);
+			}
+			item->show();
+			visible_items.push_back(item);
 		}
-		return true;
+	}
+}
+
+void sysmenu::setup_watcher() {
+	watcher = new QFileSystemWatcher(this);
+	refresh_timer = new QTimer(this);
+	refresh_timer->setSingleShot(true);
+	refresh_timer->setInterval(500);
+
+	QStringList app_dirs = QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation);
+	for (const QString& dir_path : app_dirs) {
+		if (QDir(dir_path).exists())
+			watcher->addPath(dir_path);
 	}
 
-	return false;
-}
-
-bool sysmenu::on_sort(Gtk::FlowBoxChild* a, Gtk::FlowBoxChild* b) {
-	auto b1 = dynamic_cast<launcher*> (a->get_child());
-	auto b2 = dynamic_cast<launcher*> (b->get_child());
-	return *b2 < *b1;
-}
-
-void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
-	app_list = Gio::AppInfo::get_all();
-	flowbox_itembox.remove_all();
-
-	if (config_main["main"]["dock-items"] != "")
-		sysmenu_dock->remove_all();
-
-	// Load applications
-	for (auto app : app_list)
-		load_menu_item(app);
-
-	// Load dock items
-	if (config_main["main"]["dock-items"] != "")
-		sysmenu_dock->load_items(app_list);
-
-	selected_child = nullptr;
-}
-
-void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
-	if (!app_info || !app_info->should_show() || !app_info->get_icon())
-		return;
-
-	auto name = app_info->get_name();
-	auto exec = app_info->get_executable();
-
-	// Skip loading empty entries
-	if (name.empty() || exec.empty())
-		return;
-
-	items.push_back(std::unique_ptr<launcher>(new launcher(config_main, app_info)));
-	flowbox_itembox.append(*items.back());
-}
-
-void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
-	launcher *item = dynamic_cast<launcher*>(child->get_child());
-
-	if (!item || !item->app_info)
-		return;
-
-	Glib::ustring cmd = item->app_info->get_executable();
-
-	bool uwsm_exists = Glib::find_program_in_path("uwsm").empty() == false;
-
-	std::vector<std::string> args;
-	if (uwsm_exists && config_main["main"]["use-uwsm"] == "true")
-		args = { "uwsm", "app", "--", cmd.raw() };
-	else
-		args = { cmd.raw() };
-
-	Glib::spawn_async("", args, Glib::SpawnFlags::SEARCH_PATH);
-
-	handle_signal(SIGUSR2);
-
-	// Don't add the item again if the click came from the recent's list
-	if (recent)
-		return;
-
-	auto it = std::find(app_list_history.begin(), app_list_history.end(), item->app_info);
-	if (it != app_list_history.end())
-		return;
-
-	if (app_list_history.size() >= history_size) {
-		auto first_child = flowbox_recent.get_child_at_index(0);
-		flowbox_recent.remove(*first_child);
-		app_list_history.erase(app_list_history.begin());
-	}
-
-	launcher *recent_item = new launcher(config_main, item->app_info);
-	recent_item->set_size_request(-1, -1);
-	flowbox_recent.append(*recent_item);
-	app_list_history.push_back(item->app_info);
-	flowbox_recent.set_visible(true);
-}
-
-
-void sysmenu::handle_signal(const int &signum) {
-	Glib::signal_idle().connect([this, signum]() {
-		if (signum == SIGUSR1) { // Showing window
-				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
-				flowbox_itembox.unselect_all();
-				if (config_main["main"]["dock-items"] != "") {
-					revealer_search.set_reveal_child(true);
-					revealer_dock.set_reveal_child(false);
-					box_layout.set_valign(Gtk::Align::FILL);
-					box_layout.set_size_request(-1, max_height);
-					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, true);
-				}
-
-				// Scroll to the top of the list
-				scrolled_window.get_vadjustment()->set_value(0);
-				scrolled_window_inner.get_vadjustment()->set_value(0);
-
-				show();
-				get_style_context()->add_class("visible");
-
-				if (config_main["main"]["searchbar"] == "true" && config_main["main"]["dock-items"] == "")
-					entry_search.grab_focus();
-
-		} else if (signum == SIGUSR2) { // Hiding window
-				get_style_context()->remove_class("visible");
-				if (config_main["main"]["dock-items"] != "") {
-					revealer_search.set_reveal_child(false);
-					revealer_dock.set_reveal_child(true);
-					box_layout.set_valign(Gtk::Align::END);
-					box_layout.set_size_request(-1, -1);
-					gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
-					gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
-				}
-				else {
-					Glib::signal_timeout().connect_once([&]() {
-						hide();
-						gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
-					}, std::stoi(config_main["main"]["animation-duration"]));
-				}
-				if (config_main["main"]["searchbar"] == "true")
-					entry_search.set_text("");
-				flowbox_recent.unselect_all();
-				flowbox_itembox.unselect_all();
-
-		} else if (signum == SIGRTMIN) { // Toggling window
-				if (config_main["main"]["dock-items"] != "") {
-					starting_height = box_layout.get_height();
-					if (box_layout.get_height() < max_height / 2)
-						handle_signal(SIGUSR1);
-					else
-						handle_signal(SIGUSR2);
-				}
-				else {
-					if (is_visible())
-						handle_signal(SIGUSR2);
-					else
-						handle_signal(SIGUSR1);
-				}
-		}
-		return false;
+	connect(watcher, &QFileSystemWatcher::directoryChanged, [this]() {
+		refresh_timer->start();
+	});
+	connect(refresh_timer, &QTimer::timeout, [this]() {
+		this->load_applications();
 	});
 }
 
-void sysmenu::on_drag_start(const double &x, const double &y) {
-	// For now disable swipe gestures on non touch inputs
-	// since they're broken on on touch devices
-	if (!gesture_drag->get_current_event()->get_pointer_emulated()) {
-		gesture_drag->reset();
-		return;
+void sysmenu::handle_signal(const int& signum) {
+	if (signum == SIGUSR1) {
+		show();
+		if (searchbar_enabled)
+			search_entry->setFocus();
 	}
-
-	GdkRectangle geometry;
-	gdk_monitor_get_geometry(monitor, &geometry);
-	max_height = geometry.height;
-
-	starting_height = box_layout.get_height();
-	gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
-	box_layout.set_valign(Gtk::Align::END);
+	else if (signum == SIGUSR2) {
+		search_entry->clear();
+		scroll_area->verticalScrollBar()->setValue(0);
+		scroll_area->horizontalScrollBar()->setValue(0);
+		filter_items("");
+		hide();
+	}
+	else if (signum == SIGRTMIN) {
+		if (isVisible()) {
+			hide();
+		}
+		else {
+			show();
+			if (searchbar_enabled)
+				search_entry->setFocus();
+		}
+	}
 }
 
-void sysmenu::on_drag_update(const double &x, const double &y) {
-	bool margin_ignore = (-y < std::stoi(config_main["main"]["dock-icon-size"]) / 2);
-	int height = starting_height - y;
-
-	// This mess right here clamps the height to 0 & max possible height
-	// It also adds a margin where you have to pull at least 50% of the dock's..
-	// height to trigger a pull.
-	if (starting_height < max_height) {
-		// Pulled from bottom
-		if (y > 0 || height >= max_height)
-			return;
-		else if (margin_ignore)
-			height = 0;
+void sysmenu::load_qss(const std::string& filePath) {
+	QFile styleFile(QString::fromStdString(filePath));
+	if (styleFile.open(QFile::ReadOnly)) {
+		QString styleSheet = QLatin1String(styleFile.readAll());
+		setStyleSheet(styleSheet);
+		styleFile.close();
 	}
 	else {
-		// Pulled from top
-		if (y < 0 || height < std::stoi(config_main["main"]["dock-icon-size"]))
-			return;
+		std::fprintf(stderr, "Failed to load stylesheet: %s\n", filePath.c_str());
 	}
-
-	box_layout.set_size_request(-1, height);
-
-	gtk_layer_set_layer(gobj(), margin_ignore ? GTK_LAYER_SHELL_LAYER_TOP : GTK_LAYER_SHELL_LAYER_BOTTOM);
-	revealer_dock.set_reveal_child(margin_ignore);
-	revealer_search.set_reveal_child(!margin_ignore);
-}
-
-void sysmenu::on_drag_stop(const double &x, const double &y) {
-	// For now disable swipe gestures on non touch inputs
-	// since they're broken on on touch devices
-	if (!gesture_drag->get_current_event()->get_pointer_emulated()) {
-		gesture_drag->reset();
-		return;
-	}
-
-	// Top position
-	if (box_layout.get_height() > max_height / 2)
-		handle_signal(SIGUSR1);
-	// Bottom Position
-	else
-		handle_signal(SIGUSR2);
 }
 
 extern "C" {
 	sysmenu *sysmenu_create(const std::map<std::string, std::map<std::string, std::string>>& cfg) {
 		return new sysmenu(cfg);
 	}
+
 	void sysmenu_signal(sysmenu *window, int signal) {
 		window->handle_signal(signal);
 	}

@@ -1,0 +1,15 @@
+#sysmenu {
+	background: transparent;
+}
+
+#search_entry {
+}
+
+#container {
+	background: palette(window);
+	border: 1px solid palette(mid);
+	border-radius: 10px;
+}
+
+#application {
+}

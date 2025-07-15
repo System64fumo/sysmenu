@@ -1,8 +1,10 @@
 #pragma once
 #include "config.hpp"
-#include "window.hpp"
+#include <QApplication>
 
-sysmenu* win;
+extern QApplication* app;
+class sysmenu;
+extern sysmenu* win;
 
 typedef sysmenu* (*sysmenu_create_func)(const std::map<std::string, std::map<std::string, std::string>>&);
 sysmenu_create_func sysmenu_create_ptr;
