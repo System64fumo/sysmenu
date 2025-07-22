@@ -8,8 +8,8 @@
 #include <QKeyEvent>
 #include <QToolTip>
 #include <QScrollBar>
+#include <QScroller>
 #include <LayerShellQt/Shell>
-#include <LayerShellQt/Window>
 
 sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>& cfg) 
 	: config(cfg), handle(nullptr) {
@@ -23,40 +23,49 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 	name_under_icon = config["main"]["name-under-icon"] == "true";
 	searchbar_enabled = config["main"]["searchbar"] == "true";
 	monitor = std::stoi(config["main"]["monitor"]);
+	dock_items = config["main"]["dock-items"];
+	dock_icon_size = std::stoi(config["main"]["dock-icon-size"]);
+	dock_enabled = dock_items != "";
 
 	setup_window();
 	setup_layer_shell();
 	setup_watcher();
+	max_height = handle->screen()->geometry().height();
 	
 	load_future = std::async(std::launch::async, [this]() {
 		load_applications();
 	});
 
-	if (config["main"]["start-hidden"] == "true")
-		return;
+	if (dock_enabled)
+		show();
 
-	show();
+	if (config["main"]["start-hidden"] == "true")
+		handle_signal(SIGUSR2);
+	else
+		handle_signal(SIGUSR1);
 }
 
 void sysmenu::setup_layer_shell() {
 	createWinId();
 	handle = windowHandle();
 
-	auto layer_shell = LayerShellQt::Window::get(handle);
-	layer_shell->setLayer(LayerShellQt::Window::LayerTop);
+	layer_shell = LayerShellQt::Window::get(handle);
 
-	if (config["main"].count("anchors")) {
-		QString anchors = QString::fromStdString(config["main"]["anchors"]);
-		LayerShellQt::Window::Anchors anchor_flags;
-		if (anchors.contains("top")) anchor_flags |= LayerShellQt::Window::AnchorTop;
-		if (anchors.contains("bottom")) anchor_flags |= LayerShellQt::Window::AnchorBottom;
-		if (anchors.contains("left")) anchor_flags |= LayerShellQt::Window::AnchorLeft;
-		if (anchors.contains("right")) anchor_flags |= LayerShellQt::Window::AnchorRight;
-		layer_shell->setAnchors(anchor_flags);
-	}
+	QString anchors = QString::fromStdString(config["main"]["anchors"]);
+	LayerShellQt::Window::Anchors anchor_flags;
+	if (anchors.contains("top") && !dock_enabled) anchor_flags |= LayerShellQt::Window::AnchorTop;
+	if (anchors.contains("bottom")) anchor_flags |= LayerShellQt::Window::AnchorBottom;
+	if (anchors.contains("left")) anchor_flags |= LayerShellQt::Window::AnchorLeft;
+	if (anchors.contains("right")) anchor_flags |= LayerShellQt::Window::AnchorRight;
+
+	layer_shell->setAnchors(anchor_flags);
 
 	layer_shell->setExclusiveZone(-1);
 	layer_shell->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityOnDemand);
+	if (config["main"]["start-hidden"] == "true")
+		layer_shell->setLayer(LayerShellQt::Window::LayerBottom);
+	else
+		layer_shell->setLayer(LayerShellQt::Window::LayerTop);
 
 	if (monitor != -1) {
 		auto screens = QGuiApplication::screens();
@@ -86,6 +95,7 @@ void sysmenu::setup_window() {
 
 	setAttribute(Qt::WA_TranslucentBackground);
 	setAttribute(Qt::WA_NoSystemBackground);
+	setAttribute(Qt::WA_AcceptTouchEvents);
 
 	QBoxLayout *layout = new QBoxLayout(QBoxLayout::LeftToRight, this);
 	layout->setContentsMargins(0, 0, 0, 0);
@@ -128,6 +138,8 @@ void sysmenu::setup_window() {
 	scroll_area->setHorizontalScrollBarPolicy(scroll_bars ? Qt::ScrollBarAsNeeded : Qt::ScrollBarAlwaysOff);
 	scroll_area->setVerticalScrollBarPolicy(scroll_bars ? Qt::ScrollBarAsNeeded : Qt::ScrollBarAlwaysOff);
 	
+	QScroller::grabGesture(scroll_area->viewport(), QScroller::LeftMouseButtonGesture);
+	
 	scroll_content = new QWidget();
 	
 	if (items_per_row > 1) {
@@ -167,6 +179,80 @@ bool sysmenu::eventFilter(QObject* obj, QEvent* event) {
 		}
 	}
 	return QWidget::eventFilter(obj, event);
+}
+
+bool sysmenu::event(QEvent *event) {
+	switch (event->type()) {
+		case QEvent::TouchBegin:
+		case QEvent::TouchUpdate:
+		case QEvent::TouchEnd:
+		case QEvent::TouchCancel: {
+			QTouchEvent* touch_event = static_cast<QTouchEvent*>(event);
+			QPoint touch_pos = touch_event->points()[0].position().toPoint();
+			
+			if (scroll_content && scroll_content->geometry().contains(touch_pos)) {
+				return QWidget::event(event);
+			}
+			
+			handle_touch_event(touch_event);
+			return true;
+		}
+		default:
+			return QWidget::event(event);
+	}
+}
+
+void sysmenu::handle_touch_event(QTouchEvent *event) {
+	auto touch_point = event->points()[0];
+	int desired_height = 0;
+	LayerShellQt::Window::Anchors anchor_flags;
+
+	switch (event->type()) {
+		case QEvent::TouchBegin:
+			printf("Touch start\n");
+			max_height = handle->screen()->geometry().height();
+			starting_height = height();
+
+			anchor_flags |= LayerShellQt::Window::AnchorBottom;
+			anchor_flags |= LayerShellQt::Window::AnchorLeft;
+			anchor_flags |= LayerShellQt::Window::AnchorRight;
+			layer_shell->setAnchors(anchor_flags);
+
+			break;
+		case QEvent::TouchUpdate:
+			printf("Touch update\n");
+			desired_height = starting_height - touch_point.position().y();
+
+			if (desired_height > dock_icon_size + 20) {
+				scroll_content->show();
+				if (searchbar_enabled)
+					search_entry->show();
+				setFixedHeight(std::max(desired_height, 0));
+			}
+			else {
+				scroll_content->hide();
+				if (searchbar_enabled)
+					search_entry->hide();
+				setFixedHeight(dock_icon_size + 20);
+			}
+			break;
+		case QEvent::TouchCancel:
+		case QEvent::TouchEnd:
+			printf("Touch end\n");
+
+			// Top position
+			if (height() > max_height / 2)
+				handle_signal(SIGUSR1);
+
+			// Bottom Position
+			else
+				handle_signal(SIGUSR2);
+
+			break;
+		default:
+			return;
+	}
+	printf("Pos: %f, %f\n", touch_point.position().x(), touch_point.position().y());
 }
 
 QString sysmenu::get_desktop_file_info(const QString& path, const QString& key) {
@@ -338,25 +424,63 @@ void sysmenu::setup_watcher() {
 
 void sysmenu::handle_signal(const int& signum) {
 	if (signum == SIGUSR1) {
-		show();
+		printf("Show\n");
+
+		if (dock_enabled) {
+			LayerShellQt::Window::Anchors anchor_flags;
+			anchor_flags |= LayerShellQt::Window::AnchorTop;
+			anchor_flags |= LayerShellQt::Window::AnchorBottom;
+			anchor_flags |= LayerShellQt::Window::AnchorLeft;
+			anchor_flags |= LayerShellQt::Window::AnchorRight;
+			layer_shell->setAnchors(anchor_flags);
+			scroll_content->show();
+			if (searchbar_enabled)
+				search_entry->show();
+		}
+		else {
+			show();
+		}
+
 		if (searchbar_enabled)
 			search_entry->setFocus();
+
+		layer_shell->setLayer(LayerShellQt::Window::LayerTop);
 	}
 	else if (signum == SIGUSR2) {
+		printf("Hide\n");
 		search_entry->clear();
 		scroll_area->verticalScrollBar()->setValue(0);
 		scroll_area->horizontalScrollBar()->setValue(0);
 		filter_items("");
-		hide();
-	}
-	else if (signum == SIGRTMIN) {
-		if (isVisible()) {
-			hide();
+
+		if (dock_enabled) {
+			LayerShellQt::Window::Anchors anchor_flags;
+			anchor_flags |= LayerShellQt::Window::AnchorBottom;
+			anchor_flags |= LayerShellQt::Window::AnchorLeft;
+			anchor_flags |= LayerShellQt::Window::AnchorRight;
+			layer_shell->setAnchors(anchor_flags);
+			scroll_content->hide();
+			if (searchbar_enabled)
+				search_entry->hide();
+			setFixedHeight(dock_icon_size + 20); // TODO: This could be better..
 		}
 		else {
-			show();
-			if (searchbar_enabled)
-				search_entry->setFocus();
+			hide();
+		}
+		layer_shell->setLayer(LayerShellQt::Window::LayerBottom);
+	}
+	else if (signum == SIGRTMIN) {
+		if (dock_enabled) {
+			if (height() > max_height / 2)
+				handle_signal(SIGUSR2);
+			else
+				handle_signal(SIGUSR1);
+		}
+		else {
+			if (isVisible())
+				handle_signal(SIGUSR2);
+			else
+				handle_signal(SIGUSR1);
 		}
 	}
 }
