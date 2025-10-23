@@ -21,7 +21,7 @@ class sysmenu : public Gtk::Window {
 		std::map<std::string, std::map<std::string, std::string>> config_main;
 		int starting_height = 0;
 		int max_height;
-		uint history_size = 3;
+		uint history_size;
 
 		int matches = 0;
 		Glib::ustring match = "";

@@ -145,13 +145,12 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 
 	if (std::stoi(config_main["main"]["items-per-row"]) != 1) {
 		flowbox_itembox.set_halign(Gtk::Align::CENTER);
-		history_size = std::stoi(config_main["main"]["items-per-row"]);
+		history_size = std::stoi(config_main["main"]["history-size"]);
 	}
 
 	// Recently launched
-	// TODO: Add history size config option
 	if (history_size > 0) {
-		if (std::stoi(config_main["main"]["items-per-row"]) != 1) {
+		if (history_size != 1) {
 			box_layout_inner.append(flowbox_recent);
 			flowbox_recent.set_halign(Gtk::Align::CENTER);
 			flowbox_recent.set_orientation(Gtk::Orientation::HORIZONTAL);
@@ -163,8 +162,8 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 		flowbox_recent.get_style_context()->add_class("flowbox_recent");
 		flowbox_recent.set_valign(Gtk::Align::START);
 		flowbox_recent.set_vexpand_set(true);
-		flowbox_recent.set_min_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
-		flowbox_recent.set_max_children_per_line(std::stoi(config_main["main"]["items-per-row"]));
+		flowbox_recent.set_min_children_per_line(history_size);
+		flowbox_recent.set_max_children_per_line(history_size);
 		flowbox_recent.signal_child_activated().connect([this](Gtk::FlowBoxChild* child) {
 			run_menu_item(child, true);
 		});
@@ -212,7 +211,8 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 }
 
 void sysmenu::on_search_changed() {
-	flowbox_recent.set_visible(entry_search.get_text() == "" && app_list_history.size() > 0);
+	if (history_size > 0)
+		flowbox_recent.set_visible(entry_search.get_text() == "" && app_list_history.size() > 0);
 	matches = 0;
 	match = "";
 	selected_child = nullptr;
@@ -320,8 +320,8 @@ void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 
 	handle_signal(SIGUSR2);
 
-	// Don't add the item again if the click came from the recent's list
-	if (recent)
+	// History
+	if (history_size < 1 || recent)
 		return;
 
 	auto it = std::find(app_list_history.begin(), app_list_history.end(), item->app_info);
