@@ -1,6 +1,7 @@
-#sysmenu.flowbox_recent {
+#sysmenu .flowbox_recent {
 	border-bottom: 1px solid @borders;
-	padding-bottom: 4px;
+	padding-bottom: 8px;
+	margin-bottom: 4px;
 }
 
 #sysmenu.fullscreen:not(.dock) {
@@ -12,6 +13,14 @@
 	border: 1px solid @borders;
 	box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
 	margin: 10px;
+}
+#sysmenu.window .box_layout_inner {
+	margin: 8px;
+}
+
+#sysmenu.window .flowbox_recent {
+	border-bottom: 1px solid @borders;
+	padding-bottom: 4px;
 }
 
 #sysmenu.dock .revealer_search,
