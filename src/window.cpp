@@ -397,13 +397,11 @@ void sysmenu::handle_signal(const int &signum) {
 			scrolled_window_inner.get_vadjustment()->set_value(0);
 
 			show();
-			add_css_class("visible");
 
 			if (has_searchbar && !is_dock)
 				entry_search.grab_focus();
 		}
 		else if (signum == SIGUSR2) {
-			remove_css_class("visible");
 			if (is_dock) {
 				revealer_search.set_reveal_child(false);
 				revealer_dock.set_reveal_child(true);
@@ -413,10 +411,8 @@ void sysmenu::handle_signal(const int &signum) {
 				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 			}
 			else {
-				Glib::signal_timeout().connect_once([&]() {
-					hide();
-					gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
-				}, std::stoi(config_main["main"]["animation-duration"]));
+				hide();
+				gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 			}
 			if (has_searchbar)
 				entry_search.set_text("");

@@ -27,6 +27,9 @@ endef
 
 all: $(BINS) $(LIBS)
 
+run:
+	LD_LIBRARY_PATH=$(BUILDDIR) $(BUILDDIR)/$(BINS)
+
 install: $(all)
 	@echo "Installing..."
 	@install -D -t $(DESTDIR)$(BINDIR) $(BUILDDIR)/$(BINS)
