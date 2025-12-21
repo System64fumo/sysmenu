@@ -1,8 +1,8 @@
 #include "main.hpp"
 #include "window.hpp"
-#include "css.hpp"
 #include "config.hpp"
 
+#include <gtkmm/cssprovider.h>
 #include <gtkmm/eventcontrollerkey.h>
 #include <gtk4-layer-shell.h>
 #include <thread>
@@ -16,15 +16,15 @@
 #include <signal.h>
 
 sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>& cfg) : config_main(cfg) {
+	bool edge_top = (config_main["main"]["anchors"].find("top") != std::string::npos);
+	bool edge_right = (config_main["main"]["anchors"].find("right") != std::string::npos);
+	bool edge_bottom = (config_main["main"]["anchors"].find("bottom") != std::string::npos);
+	bool edge_left = (config_main["main"]["anchors"].find("left") != std::string::npos);
+
 	if (config_main["main"]["layer-shell"] == "true") {
 		gtk_layer_init_for_window(gobj());
 		gtk_layer_set_keyboard_mode(gobj(), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
 		gtk_layer_set_namespace(gobj(), "sysmenu");
-
-		bool edge_top = (config_main["main"]["anchors"].find("top") != std::string::npos);
-		bool edge_right = (config_main["main"]["anchors"].find("right") != std::string::npos);
-		bool edge_bottom = (config_main["main"]["anchors"].find("bottom") != std::string::npos);
-		bool edge_left = (config_main["main"]["anchors"].find("left") != std::string::npos);
 
 		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, edge_top);
 		gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_RIGHT, edge_right);
@@ -35,8 +35,18 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 			gtk_layer_set_anchor(gobj(), GTK_LAYER_SHELL_EDGE_TOP, false);
 	}
 
+	// Fullscreen
+	if (edge_top && edge_right && edge_bottom && edge_left) {
+		add_css_class("fullscreen");
+	}
+	else {
+		add_css_class("window");
+	}
+
 	// Dock
 	if (config_main["main"]["dock-items"] != "") {
+		add_css_class("dock");
+		remove_css_class("background");
 		sysmenu_dock = Gtk::make_managed<dock>(config_main);
 		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_BOTTOM);
 		// TODO: Dragging causes the inner scrollbox to resize, This is bad as
@@ -66,8 +76,9 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 		config_main["main"]["height"] = "30";
 		box_layout.set_valign(Gtk::Align::END);
 	}
-	else
+	else {
 		gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
+	}
 
 	// Initialize
 	set_name("sysmenu");
@@ -81,7 +92,7 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 	scrolled_window_inner.set_child(box_layout_inner);
 	scrolled_window_inner.set_kinetic_scrolling(false);
 	box_layout_inner.set_orientation(Gtk::Orientation::VERTICAL);
-	box_layout_inner.get_style_context()->add_class("box_layout_inner");
+	box_layout_inner.add_css_class("box_layout_inner");
 
 	// Sadly there does not seem to be a way to detect what the default monitor is
 	// Gotta assume or ask the user for their monitor of choice
@@ -108,10 +119,10 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 		sigc::mem_fun(*this, &sysmenu::on_key_press), true);
 
 	if (config_main["main"]["searchbar"] == "true") {
-		entry_search.get_style_context()->add_class("entry_search");
+		entry_search.add_css_class("entry_search");
 		if (config_main["main"]["dock-items"] != "") {
 			box_top.append(revealer_search);
-			revealer_search.get_style_context()->add_class("revealer_search");
+			revealer_search.add_css_class("revealer_search");
 			revealer_search.set_child(entry_search);
 			revealer_search.set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
 			revealer_search.set_transition_duration(500);
@@ -141,7 +152,7 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 	}
 	add_controller(controller);
 
-	box_layout.get_style_context()->add_class("box_layout");
+	box_layout.add_css_class("box_layout");
 
 	if (std::stoi(config_main["main"]["items-per-row"]) != 1) {
 		flowbox_itembox.set_halign(Gtk::Align::CENTER);
@@ -159,7 +170,7 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 			box_scrolled_contents.append(flowbox_recent);
 
 		flowbox_recent.set_visible(false);
-		flowbox_recent.get_style_context()->add_class("flowbox_recent");
+		flowbox_recent.add_css_class("flowbox_recent");
 		flowbox_recent.set_valign(Gtk::Align::START);
 		flowbox_recent.set_vexpand_set(true);
 		flowbox_recent.set_min_children_per_line(history_size);
@@ -185,16 +196,21 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 		run_menu_item(child, false);
 	});
 
-	// Load custom css
-	std::string style_path;
-	if (std::filesystem::exists(std::string(getenv("HOME")) + "/.config/sys64/menu/style.css"))
-		style_path = std::string(getenv("HOME")) + "/.config/sys64/menu/style.css";
-	else if (std::filesystem::exists("/usr/share/sys64/menu/style.css"))
-		style_path = "/usr/share/sys64/menu/style.css";
-	else
-		style_path = "/usr/local/share/sys64/menu/style.css";
+	const std::string& style_path = "/usr/share/sys64/menu/style.css";
+	const std::string& style_path_usr = std::string(getenv("HOME")) + "/.config/sys64/menu/style.css";
 
-	css_loader loader(style_path, this);
+	// Load base style
+	if (std::filesystem::exists(style_path)) {
+		auto css = Gtk::CssProvider::create();
+		css->load_from_path(style_path);
+		get_style_context()->add_provider_for_display(property_display(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
+	}
+	// Load user style
+	if (std::filesystem::exists(style_path_usr)) {
+		auto css = Gtk::CssProvider::create();
+		css->load_from_path(style_path_usr);
+		get_style_context()->add_provider_for_display(property_display(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
+	}
 
 	// Load applications
 	GAppInfoMonitor* app_info_monitor = g_app_info_monitor_get();
@@ -360,13 +376,13 @@ void sysmenu::handle_signal(const int &signum) {
 				scrolled_window_inner.get_vadjustment()->set_value(0);
 
 				show();
-				get_style_context()->add_class("visible");
+				add_css_class("visible");
 
 				if (config_main["main"]["searchbar"] == "true" && config_main["main"]["dock-items"] == "")
 					entry_search.grab_focus();
 
 		} else if (signum == SIGUSR2) { // Hiding window
-				get_style_context()->remove_class("visible");
+				remove_css_class("visible");
 				if (config_main["main"]["dock-items"] != "") {
 					revealer_search.set_reveal_child(false);
 					revealer_dock.set_reveal_child(true);

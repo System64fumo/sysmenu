@@ -17,7 +17,7 @@ CXXFLAGS += $(shell pkg-config --cflags $(PKGS))
 LDFLAGS += $(shell pkg-config --libs $(PKGS))
 
 $(shell mkdir -p $(BUILDDIR))
-JOB_COUNT := $(EXEC) $(LIB) $(OBJS) src/git_info.hpp
+JOB_COUNT := $(BINS) $(LIBS) $(OBJS) src/git_info.hpp
 JOBS_DONE := $(shell ls -l $(JOB_COUNT) 2> /dev/null | wc -l)
 
 define progress
@@ -31,7 +31,7 @@ install: $(all)
 	@echo "Installing..."
 	@install -D -t $(DESTDIR)$(BINDIR) $(BUILDDIR)/$(BINS)
 	@install -D -t $(DESTDIR)$(LIBDIR) $(BUILDDIR)/$(LIBS)
-	@install -D -t $(DESTDIR)$(DATADIR)/sys64/menu config.conf style.css style_fullscreen.css
+	@install -D -t $(DESTDIR)$(DATADIR)/sys64/menu config.conf style.css
 
 clean:
 	@echo "Cleaning up"
