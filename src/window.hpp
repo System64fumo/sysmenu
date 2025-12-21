@@ -11,6 +11,7 @@
 #include <gtkmm/centerbox.h>
 #include <gtkmm/gesturedrag.h>
 #include <giomm/desktopappinfo.h>
+#include <set>
 
 class sysmenu : public Gtk::Window {
 	public:
@@ -28,6 +29,7 @@ class sysmenu : public Gtk::Window {
 		std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
 		std::vector<std::shared_ptr<Gio::AppInfo>> app_list_history;
 		std::vector<std::unique_ptr<launcher>> items;
+		std::set<std::string> new_apps;
 
 		GdkDisplay *display;
 		GListModel *monitors;

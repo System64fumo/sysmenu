@@ -1,6 +1,7 @@
 #include "launcher.hpp"
+#include <glibmm/markup.h>
 
-launcher::launcher(const std::map<std::string, std::map<std::string, std::string>>& cfg, const Glib::RefPtr<Gio::AppInfo> &app) : Gtk::Box(), app_info(app), config_main(cfg) {
+launcher::launcher(const std::map<std::string, std::map<std::string, std::string>>& cfg, const Glib::RefPtr<Gio::AppInfo> &app, bool is_new) : Gtk::Box(), app_info(app), config_main(cfg) {
 	name = app_info->get_name();
 	long_name = app_info->get_display_name();
 	progr = app_info->get_executable();
@@ -14,10 +15,14 @@ launcher::launcher(const std::map<std::string, std::map<std::string, std::string
 	image_program.set(app->get_icon());
 	image_program.set_pixel_size(std::stoi(config_main["main"]["icon-size"]));
 
+	Glib::ustring display_name = long_name;
 	if (long_name.length() > std::stoul(config_main["main"]["name-length"]))
-		label_program.set_text(long_name.substr(0, std::stoi(config_main["main"]["name-length"]) - 2) + "..");
+		display_name = long_name.substr(0, std::stoi(config_main["main"]["name-length"]) - 2) + "..";
+
+	if (is_new)
+		label_program.set_markup("<span foreground='#3584e4'>● </span>" + Glib::Markup::escape_text(display_name));
 	else
-		label_program.set_text(long_name);
+		label_program.set_text(display_name);
 
 	int size_request = -1;
 	if (config_main["main"]["name-under-icon"] == "true") {
@@ -38,7 +43,7 @@ launcher::launcher(const std::map<std::string, std::map<std::string, std::string
 	set_hexpand(true);
 	set_size_request(size_request, size_request);
 
-	get_style_context()->add_class("launcher");
+	add_css_class("launcher");
 	set_tooltip_text(descr);
 }
 
@@ -55,4 +60,12 @@ bool launcher::matches(Glib::ustring pattern) {
 bool launcher::operator < (const launcher& other) {
 	return Glib::ustring(app_info->get_name()).lowercase()
 		< Glib::ustring(other.app_info->get_name()).lowercase();
+}
+
+void launcher::clear_new_indicator() {
+	Glib::ustring display_name = long_name;
+	if (long_name.length() > std::stoul(config_main["main"]["name-length"]))
+		display_name = long_name.substr(0, std::stoi(config_main["main"]["name-length"]) - 2) + "..";
+	
+	label_program.set_text(display_name);
 }
