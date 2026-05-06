@@ -24,8 +24,11 @@ class sysmenu : public Gtk::Window {
 		int max_height;
 		uint history_size;
 
+		bool is_dock = false;
+		bool has_searchbar = false;
+		bool uwsm_available = false;
+
 		int matches = 0;
-		Glib::ustring match = "";
 		std::vector<std::shared_ptr<Gio::AppInfo>> app_list;
 		std::vector<std::shared_ptr<Gio::AppInfo>> app_list_history;
 		std::vector<std::unique_ptr<launcher>> items;
@@ -45,7 +48,7 @@ class sysmenu : public Gtk::Window {
 		Gtk::Revealer revealer_search;
 		Gtk::FlowBox flowbox_recent;
 		Gtk::FlowBox flowbox_itembox;
-		Gtk::FlowBoxChild *selected_child;
+		Gtk::FlowBoxChild *selected_child = nullptr;
 		Gtk::ScrolledWindow scrolled_window;
 		Gtk::ScrolledWindow scrolled_window_inner;
 		Gtk::Box box_top;

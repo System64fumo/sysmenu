@@ -8,7 +8,6 @@
 #include <thread>
 #include <filesystem>
 #include <glibmm/main.h>
-#include <glibmm/spawn.h>
 #include <glibmm/miscutils.h>
 #include <gtkmm/adjustment.h>
 #include <algorithm>
@@ -19,8 +18,8 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 	bool edge_right = config_main["main"]["anchors"].find("right") != std::string::npos;
 	bool edge_bottom = config_main["main"]["anchors"].find("bottom") != std::string::npos;
 	bool edge_left = config_main["main"]["anchors"].find("left") != std::string::npos;
-	bool is_dock = !config_main["main"]["dock-items"].empty();
-	bool has_searchbar = config_main["main"]["searchbar"] == "true";
+	is_dock = !config_main["main"]["dock-items"].empty();
+	has_searchbar = config_main["main"]["searchbar"] == "true";
 
 	if (is_dock && !(edge_top && edge_right && edge_bottom && edge_left)) {
 		std::fprintf(stderr, "Warning: Dock mode requires all anchors (top, right, bottom, left). Forcing fullscreen mode.\n");
@@ -106,6 +105,8 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 	gdk_monitor_get_geometry(monitor, &geometry);
 	max_height = geometry.height;
 
+	uwsm_available = !Glib::find_program_in_path("uwsm").empty();
+
 	auto controller = Gtk::EventControllerKey::create();
 	controller->signal_key_pressed().connect(sigc::mem_fun(*this, &sysmenu::on_key_press), true);
 	add_controller(controller);
@@ -154,7 +155,7 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 		box_layout_inner.append(flowbox_recent);
 		flowbox_recent.set_visible(false);
 		flowbox_recent.add_css_class("flowbox_recent");
-		
+
 		if (std::stoi(config_main["main"]["items-per-row"]) == 1) {
 			flowbox_recent.set_orientation(Gtk::Orientation::HORIZONTAL);
 			flowbox_recent.set_min_children_per_line(1);
@@ -166,7 +167,7 @@ sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>
 			flowbox_recent.set_min_children_per_line(history_size);
 			flowbox_recent.set_max_children_per_line(history_size);
 		}
-		
+
 		flowbox_recent.signal_child_activated().connect([this](Gtk::FlowBoxChild* child) {
 			run_menu_item(child, true);
 		});
@@ -215,7 +216,6 @@ void sysmenu::on_search_changed() {
 	if (history_size > 0)
 		flowbox_recent.set_visible(entry_search.get_text().empty() && !app_list_history.empty());
 	matches = 0;
-	match = "";
 	selected_child = nullptr;
 	flowbox_itembox.invalidate_filter();
 }
@@ -226,7 +226,7 @@ bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk:
 			handle_signal(SIGUSR2);
 			break;
 		case 65056:
-			if (config_main["main"]["searchbar"] == "true" && config_main["main"]["dock-items"].empty())
+			if (has_searchbar && !is_dock)
 				entry_search.grab_focus();
 			break;
 		case 65289: {
@@ -258,7 +258,6 @@ bool sysmenu::on_filter(Gtk::FlowBoxChild *child) {
 		matches++;
 		if (matches == 1) {
 			selected_child = child;
-			match = button->app_info->get_executable();
 		}
 		return true;
 	}
@@ -273,16 +272,16 @@ bool sysmenu::on_sort(Gtk::FlowBoxChild* a, Gtk::FlowBoxChild* b) {
 
 void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 	auto new_app_list = Gio::AppInfo::get_all();
-	
+
 	if (!app_list.empty()) {
 		for (const auto& app : new_app_list) {
 			if (!app)
 				continue;
-			
+
 			auto id = app->get_id();
 			if (id.empty())
 				continue;
-			
+
 			bool found = false;
 			for (const auto& old_app : app_list) {
 				if (old_app && old_app->get_id() == id) {
@@ -290,16 +289,16 @@ void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 					break;
 				}
 			}
-			
+
 			if (!found)
 				new_apps.insert(id);
 		}
 	}
-	
+
 	app_list = new_app_list;
 	flowbox_itembox.remove_all();
 
-	if (!config_main["main"]["dock-items"].empty())
+	if (is_dock)
 		sysmenu_dock->remove_all();
 
 	// Load applications
@@ -307,7 +306,7 @@ void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 		load_menu_item(app);
 
 	// Load dock items
-	if (!config_main["main"]["dock-items"].empty())
+	if (is_dock)
 		sysmenu_dock->load_items(app_list);
 
 	selected_child = nullptr;
@@ -340,15 +339,18 @@ void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 	if (!id.empty() && new_apps.erase(id))
 		item->clear_new_indicator();
 
-	Glib::ustring cmd = item->app_info->get_executable();
+	auto ctx = Gdk::Display::get_default()->get_app_launch_context();
 
-	bool uwsm_exists = !Glib::find_program_in_path("uwsm").empty();
-
-	std::vector<std::string> args = (uwsm_exists && config_main["main"]["use-uwsm"] == "true")
-		? std::vector<std::string>{"uwsm", "app", "--", cmd.raw()}
-		: std::vector<std::string>{cmd.raw()};
-
-	Glib::spawn_async("", args, Glib::SpawnFlags::SEARCH_PATH);
+	if (uwsm_available && config_main["main"]["use-uwsm"] == "true") {
+		Glib::ustring cmd = "uwsm app -- " + item->app_info->get_executable();
+		auto wrapped = Gio::AppInfo::create_from_commandline(cmd, "", Gio::AppInfo::CreateFlags::NONE);
+		if (wrapped)
+			wrapped->launch(std::vector<Glib::RefPtr<Gio::File>>{}, ctx);
+		else
+			item->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>{}, ctx);
+	} else {
+		item->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>{}, ctx);
+	}
 
 	handle_signal(SIGUSR2);
 
@@ -379,9 +381,6 @@ void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 
 void sysmenu::handle_signal(const int &signum) {
 	Glib::signal_idle().connect([this, signum]() {
-		bool is_dock = !config_main["main"]["dock-items"].empty();
-		bool has_searchbar = config_main["main"]["searchbar"] == "true";
-
 		if (signum == SIGUSR1) {
 			gtk_layer_set_layer(gobj(), GTK_LAYER_SHELL_LAYER_TOP);
 			flowbox_itembox.unselect_all();
@@ -459,14 +458,14 @@ void sysmenu::on_drag_update(const double &x, const double &y) {
 			return;
 		if (margin_ignore)
 			height = 0;
-		
+
 		gtk_layer_set_layer(gobj(), margin_ignore ? GTK_LAYER_SHELL_LAYER_TOP : GTK_LAYER_SHELL_LAYER_BOTTOM);
 		revealer_dock.set_reveal_child(margin_ignore);
 		revealer_search.set_reveal_child(!margin_ignore);
 	} else {
 		if (y < 0 || height < dock_icon_size)
 			return;
-		
+
 		bool show_dock = (height <= dock_icon_size * 2);
 		gtk_layer_set_layer(gobj(), show_dock ? GTK_LAYER_SHELL_LAYER_BOTTOM : GTK_LAYER_SHELL_LAYER_TOP);
 		revealer_dock.set_reveal_child(show_dock);
@@ -488,29 +487,29 @@ void sysmenu::on_drag_stop(const double &x, const double &y) {
 	int target_height = should_open ? max_height : std::stoi(config_main["main"]["dock-icon-size"]);
 	int current_height = box_layout.get_height();
 	int duration = std::stoi(config_main["main"]["animation-duration"]);
-	
+
 	if (current_height == target_height) {
 		handle_signal(should_open ? SIGUSR1 : SIGUSR2);
 		return;
 	}
-	
+
 	auto start_time = std::make_shared<gint64>(g_get_monotonic_time());
-	
+
 	Glib::signal_timeout().connect([this, current_height, target_height, duration, should_open, start_time]() {
 		gint64 now = g_get_monotonic_time();
 		gint64 elapsed = now - *start_time;
 		float progress = std::min(1.0f, (float)elapsed / (duration * 1000.0f));
-		
+
 		if (progress >= 1.0f) {
 			box_layout.set_size_request(-1, target_height);
 			handle_signal(should_open ? SIGUSR1 : SIGUSR2);
 			return false;
 		}
-		
+
 		progress = progress * progress * (3.0f - 2.0f * progress);
 		int new_height = current_height + ((target_height - current_height) * progress);
 		box_layout.set_size_request(-1, new_height);
-		
+
 		return true;
 	}, 16);
 }
