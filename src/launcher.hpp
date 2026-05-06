@@ -24,4 +24,7 @@ class launcher : public Gtk::Box {
 		Glib::ustring long_name;
 		Glib::ustring progr;
 		Glib::ustring descr;
+		int name_length;
+
+		Glib::ustring get_display_name() const;
 };

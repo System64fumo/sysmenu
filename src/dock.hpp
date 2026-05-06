@@ -22,8 +22,7 @@ class dock : public Gtk::FlowBox {
 	private:
 		std::map<std::string, std::map<std::string, std::string>> config_main;
 		std::map<std::string, int> order_map;
-		std::string dock_existing_items;
 		void on_child_activated(Gtk::FlowBoxChild* child);
 		bool on_sort(Gtk::FlowBoxChild *a, Gtk::FlowBoxChild *b);
-		std::string to_lowercase(const std::string &str);
+		static std::string to_lowercase(const std::string &str);
 };

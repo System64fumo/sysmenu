@@ -6,6 +6,7 @@ launcher::launcher(const std::map<std::string, std::map<std::string, std::string
 	long_name = app_info->get_display_name();
 	progr = app_info->get_executable();
 	descr = app_info->get_description();
+	name_length = std::stoi(config_main["main"]["name-length"]);
 
 	if (config_main["main"]["items-per-row"] == "1")
 		set_margin_top(std::stoi(config_main["main"]["app-margins"]));
@@ -15,9 +16,7 @@ launcher::launcher(const std::map<std::string, std::map<std::string, std::string
 	image_program.set(app->get_icon());
 	image_program.set_pixel_size(std::stoi(config_main["main"]["icon-size"]));
 
-	Glib::ustring display_name = long_name;
-	if (long_name.length() > std::stoul(config_main["main"]["name-length"]))
-		display_name = long_name.substr(0, std::stoi(config_main["main"]["name-length"]) - 2) + "..";
+	Glib::ustring display_name = get_display_name();
 
 	if (is_new)
 		label_program.set_markup("<span foreground='#3584e4'>● </span>" + Glib::Markup::escape_text(display_name));
@@ -27,7 +26,7 @@ launcher::launcher(const std::map<std::string, std::map<std::string, std::string
 	int size_request = -1;
 	if (config_main["main"]["name-under-icon"] == "true") {
 		set_orientation(Gtk::Orientation::VERTICAL);
-		size_request = std::stoi(config_main["main"]["name-length"]) * 10;
+		size_request = name_length * 10;
 		image_program.set_vexpand(true);
 		image_program.set_valign(Gtk::Align::END);
 		label_program.set_margin_top(3);
@@ -47,25 +46,26 @@ launcher::launcher(const std::map<std::string, std::map<std::string, std::string
 	set_tooltip_text(descr);
 }
 
-bool launcher::matches(Glib::ustring pattern) {
-	Glib::ustring text =
-		name.lowercase() + "$" +
-		long_name.lowercase() + "$" +
-		progr.lowercase() + "$" +
-		descr.lowercase();
+Glib::ustring launcher::get_display_name() const {
+	if (long_name.length() > static_cast<size_t>(name_length))
+		return long_name.substr(0, name_length - 2) + "..";
+	return long_name;
+}
 
-	return text.find(pattern.lowercase()) != text.npos;
+bool launcher::matches(Glib::ustring pattern) {
+	if (pattern.empty())
+		return true;
+	auto lower = pattern.lowercase();
+	return name.lowercase().find(lower) != name.npos
+		|| long_name.lowercase().find(lower) != long_name.npos
+		|| progr.lowercase().find(lower) != progr.npos
+		|| descr.lowercase().find(lower) != descr.npos;
 }
 
 bool launcher::operator < (const launcher& other) {
-	return Glib::ustring(app_info->get_name()).lowercase()
-		< Glib::ustring(other.app_info->get_name()).lowercase();
+	return name.lowercase() < other.name.lowercase();
 }
 
 void launcher::clear_new_indicator() {
-	Glib::ustring display_name = long_name;
-	if (long_name.length() > std::stoul(config_main["main"]["name-length"]))
-		display_name = long_name.substr(0, std::stoi(config_main["main"]["name-length"]) - 2) + "..";
-	
-	label_program.set_text(display_name);
+	label_program.set_text(get_display_name());
 }

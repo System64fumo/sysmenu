@@ -11,6 +11,7 @@
 #include <glibmm/miscutils.h>
 #include <gtkmm/adjustment.h>
 #include <algorithm>
+#include <gdk/gdkkeysyms.h>
 #include <signal.h>
 
 sysmenu::sysmenu(const std::map<std::string, std::map<std::string, std::string>>& cfg) : config_main(cfg) {
@@ -222,14 +223,14 @@ void sysmenu::on_search_changed() {
 
 bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk::ModifierType &state) {
 	switch (keyval) {
-		case 65307:
+		case GDK_KEY_Escape:
 			handle_signal(SIGUSR2);
 			break;
-		case 65056:
+		case GDK_KEY_ISO_Left_Tab:
 			if (has_searchbar && !is_dock)
 				entry_search.grab_focus();
 			break;
-		case 65289: {
+		case GDK_KEY_Tab: {
 			auto selected_children = flowbox_itembox.get_selected_children();
 			if (!selected_children.empty())
 				return false;
@@ -244,7 +245,7 @@ bool sysmenu::on_key_press(const guint &keyval, const guint &keycode, const Gdk:
 			}
 			break;
 		}
-		case 65293:
+		case GDK_KEY_Return:
 			return false;
 	}
 	return true;
@@ -272,6 +273,7 @@ bool sysmenu::on_sort(Gtk::FlowBoxChild* a, Gtk::FlowBoxChild* b) {
 
 void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 	auto new_app_list = Gio::AppInfo::get_all();
+	std::set<std::string> detected_new_apps;
 
 	if (!app_list.empty()) {
 		for (const auto& app : new_app_list) {
@@ -291,25 +293,32 @@ void sysmenu::app_info_changed(GAppInfoMonitor* gappinfomonitor) {
 			}
 
 			if (!found)
-				new_apps.insert(id);
+				detected_new_apps.insert(id);
 		}
 	}
 
-	app_list = new_app_list;
-	flowbox_itembox.remove_all();
+	Glib::signal_idle().connect([this, new_app_list = std::move(new_app_list),
+				      detected_new_apps = std::move(detected_new_apps)]() {
+		for (const auto& id : detected_new_apps)
+			new_apps.insert(id);
 
-	if (is_dock)
-		sysmenu_dock->remove_all();
+		app_list = new_app_list;
+		flowbox_itembox.remove_all();
 
-	// Load applications
-	for (auto app : app_list)
-		load_menu_item(app);
+		if (is_dock)
+			sysmenu_dock->remove_all();
 
-	// Load dock items
-	if (is_dock)
-		sysmenu_dock->load_items(app_list);
+		// Load applications
+		for (auto app : app_list)
+			load_menu_item(app);
 
-	selected_child = nullptr;
+		// Load dock items
+		if (is_dock)
+			sysmenu_dock->load_items(app_list);
+
+		selected_child = nullptr;
+		return false;
+	});
 }
 
 void sysmenu::load_menu_item(const Glib::RefPtr<Gio::AppInfo> &app_info) {
@@ -372,7 +381,7 @@ void sysmenu::run_menu_item(Gtk::FlowBoxChild* child, const bool &recent) {
 		app_list_history.erase(app_list_history.begin());
 	}
 
-	launcher *recent_item = new launcher(config_main, item->app_info, false);
+	auto recent_item = Gtk::make_managed<launcher>(config_main, item->app_info, false);
 	recent_item->set_size_request(-1, -1);
 	flowbox_recent.append(*recent_item);
 	app_list_history.push_back(item->app_info);

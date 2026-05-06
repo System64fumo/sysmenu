@@ -1,4 +1,5 @@
 #include "dock.hpp"
+#include <gdkmm/display.h>
 
 dock::dock(const std::map<std::string, std::map<std::string, std::string>>& cfg) {
 	config_main = cfg;
@@ -22,7 +23,6 @@ dock::dock(const std::map<std::string, std::map<std::string, std::string>>& cfg)
 }
 
 void dock::load_items(const std::vector<std::shared_ptr<Gio::AppInfo>> &items) {
-	dock_existing_items.clear();
 	for (const auto& app_info : items) {
 		std::string name = to_lowercase(app_info->get_name());
 
@@ -32,7 +32,6 @@ void dock::load_items(const std::vector<std::shared_ptr<Gio::AppInfo>> &items) {
 		if (config_main["main"]["dock-items"].find(name) == std::string::npos)
 			continue;
 
-		dock_existing_items = dock_existing_items + name;
 		auto item = Gtk::make_managed<dock_item>(app_info, std::stoi(config_main["main"]["dock-icon-size"]));
 		append(*item);
 	}
@@ -40,7 +39,11 @@ void dock::load_items(const std::vector<std::shared_ptr<Gio::AppInfo>> &items) {
 
 void dock::on_child_activated(Gtk::FlowBoxChild* child) {
 	dock_item *button = dynamic_cast<dock_item*>(child);
-	button->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>());
+	if (!button)
+		return;
+
+	auto ctx = Gdk::Display::get_default()->get_app_launch_context();
+	button->app_info->launch(std::vector<Glib::RefPtr<Gio::File>>{}, ctx);
 }
 
 dock_item::dock_item(const Glib::RefPtr<Gio::AppInfo> &app, const int &icon_size) {
@@ -57,8 +60,13 @@ dock_item::dock_item(const Glib::RefPtr<Gio::AppInfo> &app, const int &icon_size
 
 bool dock::on_sort(Gtk::FlowBoxChild *a, Gtk::FlowBoxChild *b) {
 	// Funky sorting part 2!
-	auto appinfo1 = dynamic_cast<dock_item*>(a)->app_info;
-	auto appinfo2 = dynamic_cast<dock_item*>(b)->app_info;
+	auto item1 = dynamic_cast<dock_item*>(a);
+	auto item2 = dynamic_cast<dock_item*>(b);
+	if (!item1 || !item2)
+		return false;
+
+	auto appinfo1 = item1->app_info;
+	auto appinfo2 = item2->app_info;
 
 	std::string name1 = to_lowercase(appinfo1->get_name());
 	std::string name2 = to_lowercase(appinfo2->get_name());
@@ -76,6 +84,6 @@ bool dock::on_sort(Gtk::FlowBoxChild *a, Gtk::FlowBoxChild *b) {
 std::string dock::to_lowercase(const std::string &str) {
 	std::string result = str;
 	for (char& c : result)
-		c = std::tolower(c);
+		c = std::tolower(static_cast<unsigned char>(c));
 	return result;
 }
