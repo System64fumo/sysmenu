@@ -441,9 +441,9 @@ void sysmenu::handle_signal(const int &signum) {
 }
 
 void sysmenu::on_drag_start(const double &x, const double &y) {
+	auto event = gesture_drag->get_current_event();
 	// For now disable swipe gestures on non touch inputs
-	// since they're broken on on touch devices
-	if (!gesture_drag->get_current_event()->get_pointer_emulated()) {
+	if (!event || !event->get_pointer_emulated()) {
 		gesture_drag->reset();
 		return;
 	}
@@ -485,9 +485,9 @@ void sysmenu::on_drag_update(const double &x, const double &y) {
 }
 
 void sysmenu::on_drag_stop(const double &x, const double &y) {
+	auto event = gesture_drag->get_current_event();
 	// For now disable swipe gestures on non touch inputs
-	// since they're broken on on touch devices
-	if (!gesture_drag->get_current_event()->get_pointer_emulated()) {
+	if (!event || !event->get_pointer_emulated()) {
 		gesture_drag->reset();
 		return;
 	}
